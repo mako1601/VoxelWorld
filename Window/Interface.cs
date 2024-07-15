@@ -14,37 +14,42 @@ namespace VoxelWorld.Window
         {
             public Player Player { get; set; }
             public uint FPS { get; set; }
-            public Vector2 WindowSize { get; set; }
+            public Vector2i WindowSize { get; set; }
         }
 
         private readonly Text _debugText;
         private readonly Crosshair _crosshair;
+        private readonly SelectedBlock _selectedBlock;
 
-        public Interface()
+        public Interface(string blockName)
         {
             FontSize = 32;
             DebugInfo = false;
             Crosshair = true;
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
+            _selectedBlock = new SelectedBlock(blockName);
         }
 
         public uint FontSize { get; set; }
         public bool DebugInfo { get; set; }
         public bool Crosshair { get; set; }
 
-        public void DrawDebufInfo(Color4 color, Info info)
+        public void Draw(Color4 color, Info info)
         {
-            if (DebugInfo == false) return;
+            Clear(ClearBufferMask.DepthBufferBit);
 
-            DrawInfo(color, info);
+            if (DebugInfo == true) DrawInfo(color, info);
+            if (Crosshair == true) _crosshair.Draw(info.WindowSize);
+
+            _selectedBlock.Draw(info);
         }
 
-        public void DrawCrosshair(Vector2i windowSize)
+        public void Delete()
         {
-            if (Crosshair == false) return;
-
-            _crosshair.Draw(windowSize);
+            _debugText.Delete();
+            _crosshair.Delete();
+           _selectedBlock.Delete();
         }
 
         private void DrawLine(string text, float x, float y, float scale/*, Vector2 dir*/)
@@ -109,12 +114,6 @@ namespace VoxelWorld.Window
             DrawLine($"Chunk Coords XZ: {World.Chunks.GetChunkPosition((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Z))}", 5f, 180f, 0.5f);
 
             Disable(EnableCap.Blend);
-        }
-
-        public void Delete()
-        {
-            _debugText.Delete();
-            _crosshair.Delete();
         }
     }
 }

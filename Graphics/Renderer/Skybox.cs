@@ -14,7 +14,6 @@ namespace VoxelWorld.Graphics.Renderer
     public class Skybox
     {
         private readonly ShaderProgram _shader;
-
         private readonly VAO _vao;
         private readonly VBO _vbo;
         private readonly EBO _ebo;
@@ -69,10 +68,10 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("view", new Matrix4(new Matrix3(matrix.View)));
             _shader.SetMatrix4("projection", matrix.Projection);
 
-            _vao.Bind();
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);
 
+            _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _skyboxIndices.Count, DrawElementsType.UnsignedInt, 0);
 
             DepthFunc(DepthFunction.Less);

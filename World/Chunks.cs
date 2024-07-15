@@ -14,7 +14,7 @@ namespace VoxelWorld.World
         #region properties
         public static Dictionary<Vector2i, Chunk>? ChunksArray { get; private set; } = null;
         public ShaderProgram Shader { get; private set; }
-        private Dictionary<string, TextureArray> Textures { get; set; }
+        public static Dictionary<string, TextureArray>? Textures { get; set; } = null;
         #endregion
 
         #region constructor
@@ -55,6 +55,7 @@ namespace VoxelWorld.World
         public void Draw(Matrixes matrix, Parameters parameters)
         {
             if (ChunksArray == null) throw new Exception("ChunksArray is null");
+            if (Textures == null) throw new Exception("Textures is null");
 
             Enable(EnableCap.CullFace);
             CullFace(CullFaceMode.Back);
@@ -97,6 +98,7 @@ namespace VoxelWorld.World
         public void Delete()
         {
             if (ChunksArray == null) throw new Exception("ChunksArray is null");
+            if (Textures == null) throw new Exception("Textures is null");
 
             foreach (var texture in Textures)
             {

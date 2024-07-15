@@ -74,55 +74,55 @@ namespace VoxelWorld.World
             {Face.Front,
                 new List<Vector3>
                 {
-                    new(0f, 0f, 1f),
-                    new(1f, 0f, 1f),
-                    new(1f, 1f, 1f),
-                    new(0f, 1f, 1f)
+                    (0f, 0f, 1f),
+                    (1f, 0f, 1f),
+                    (1f, 1f, 1f),
+                    (0f, 1f, 1f)
                 }
             },
             {Face.Back,
                 new List<Vector3>
                 {
-                    new(0f, 0f, 0f),
-                    new(0f, 1f, 0f),
-                    new(1f, 1f, 0f),
-                    new(1f, 0f, 0f)
+                    (0f, 0f, 0f),
+                    (0f, 1f, 0f),
+                    (1f, 1f, 0f),
+                    (1f, 0f, 0f)
                 }
             },
             {Face.Left,
                 new List<Vector3>
                 {
-                    new(0f, 0f, 0f),
-                    new(0f, 0f, 1f),
-                    new(0f, 1f, 1f),
-                    new(0f, 1f, 0f)
+                    (0f, 0f, 0f),
+                    (0f, 0f, 1f),
+                    (0f, 1f, 1f),
+                    (0f, 1f, 0f)
                 }
             },
             {Face.Right,
                 new List<Vector3>
                 {
-                    new(1f, 0f, 0f),
-                    new(1f, 1f, 0f),
-                    new(1f, 1f, 1f),
-                    new(1f, 0f, 1f)
+                    (1f, 0f, 0f),
+                    (1f, 1f, 0f),
+                    (1f, 1f, 1f),
+                    (1f, 0f, 1f)
                 }
             },
             {Face.Top,
                 new List<Vector3>
                 {
-                    new(0f, 1f, 0f),
-                    new(0f, 1f, 1f),
-                    new(1f, 1f, 1f),
-                    new(1f, 1f, 0f)
+                    (0f, 1f, 0f),
+                    (0f, 1f, 1f),
+                    (1f, 1f, 1f),
+                    (1f, 1f, 0f)
                 }
             },
             {Face.Bottom,
                 new List<Vector3>
                 {
-                    new(0f, 0f, 0f),
-                    new(1f, 0f, 0f),
-                    new(1f, 0f, 1f),
-                    new(0f, 0f, 1f)
+                    (0f, 0f, 0f),
+                    (1f, 0f, 0f),
+                    (1f, 0f, 1f),
+                    (0f, 0f, 1f)
                 }
             }
         };
@@ -130,50 +130,50 @@ namespace VoxelWorld.World
         {
             {Face.Front, new List<Vector2>
                 {
-                    new(0f, 0f),
-                    new(1f, 0f),
-                    new(1f, 1f),
-                    new(0f, 1f)
+                    (0f, 0f),
+                    (1f, 0f),
+                    (1f, 1f),
+                    (0f, 1f)
                 }
             },
             {Face.Back, new List<Vector2>
                 {
-                    new(1f, 0f),
-                    new(1f, 1f),
-                    new(0f, 1f),
-                    new(0f, 0f)
+                    (1f, 0f),
+                    (1f, 1f),
+                    (0f, 1f),
+                    (0f, 0f)
                 }
             },
             {Face.Left, new List<Vector2>
                 {
-                    new(0f, 0f),
-                    new(1f, 0f),
-                    new(1f, 1f),
-                    new(0f, 1f)
+                    (0f, 0f),
+                    (1f, 0f),
+                    (1f, 1f),
+                    (0f, 1f)
                 }
             },
             {Face.Right, new List<Vector2>
                 {
-                    new(1f, 0f),
-                    new(1f, 1f),
-                    new(0f, 1f),
-                    new(0f, 0f)
+                    (1f, 0f),
+                    (1f, 1f),
+                    (0f, 1f),
+                    (0f, 0f)
                 }
             },
             {Face.Top, new List<Vector2>
                 {
-                    new(0f, 1f),
-                    new(0f, 0f),
-                    new(1f, 0f),
-                    new(1f, 1f)
+                    (0f, 1f),
+                    (0f, 0f),
+                    (1f, 0f),
+                    (1f, 1f)
                 }
             },
             {Face.Bottom, new List<Vector2>
                 {
-                    new(0f, 0f),
-                    new(1f, 0f),
-                    new(1f, 1f),
-                    new(0f, 1f)
+                    (0f, 0f),
+                    (1f, 0f),
+                    (1f, 1f),
+                    (0f, 1f)
                 }
             }
         };

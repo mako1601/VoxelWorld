@@ -121,10 +121,11 @@ namespace VoxelWorld.Window
             Enable(EnableCap.DepthTest);
             DepthFunc(DepthFunction.Less);
 
+            // init
             skybox = new Skybox();
             chunks = new Chunks();
             outline = new Outline();
-            gameInterface = new Interface();
+            gameInterface = new Interface(player.SelectedBlock);
 
             matrixes = new Matrixes(player);
             parameters = new Parameters(_isWhiteWorld, player);
@@ -208,8 +209,7 @@ namespace VoxelWorld.Window
             skybox.Draw(matrixes);
             chunks.Draw(matrixes, parameters);
             outline.Draw(matrixes, player.Camera.Ray.Block);
-            gameInterface.DrawCrosshair(ClientSize);
-            gameInterface.DrawDebufInfo(Color4.Black, new Interface.Info { Player = player, FPS = FPS, WindowSize = ClientSize });
+            gameInterface.Draw(Color4.Black, new Interface.Info { Player = player, FPS = FPS, WindowSize = ClientSize });
 
             Context.SwapBuffers();
         }

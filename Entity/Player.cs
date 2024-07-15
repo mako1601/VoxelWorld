@@ -28,7 +28,7 @@ namespace VoxelWorld.Entity
         public float Speed { get; set; } = 8f;
         public Vector3 Position { get; set; }
         public Camera Camera { get; set; }
-        public string SelectedBlock { get; set; } = "stone";
+        public string SelectedBlock { get; private set; } = "stone";
         /// <summary>
         /// default: 5f (5 blocks)
         /// </summary>
@@ -84,46 +84,14 @@ namespace VoxelWorld.Entity
             #endregion
 
             #region Block selection 1-8
-            if (input.IsKeyPressed(Keys.D1))
-            {
-                SelectedBlock = "stone";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D2))
-            {
-                SelectedBlock = "dirt";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D3))
-            {
-                SelectedBlock = "grass";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D4))
-            {
-                SelectedBlock = "sand";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D5))
-            {
-                SelectedBlock = "gravel";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D6))
-            {
-                SelectedBlock = "oak_log";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D7))
-            {
-                SelectedBlock = "oak_leaves";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
-            if (input.IsKeyPressed(Keys.D8))
-            {
-                SelectedBlock = "glass";
-                Console.WriteLine($"SelectedBlock = \'{SelectedBlock}\'");
-            }
+            if (input.IsKeyPressed(Keys.D1)) SelectedBlock = "stone";
+            if (input.IsKeyPressed(Keys.D2)) SelectedBlock = "dirt";
+            if (input.IsKeyPressed(Keys.D3)) SelectedBlock = "grass";
+            if (input.IsKeyPressed(Keys.D4)) SelectedBlock = "sand";
+            if (input.IsKeyPressed(Keys.D5)) SelectedBlock = "gravel";
+            if (input.IsKeyPressed(Keys.D6)) SelectedBlock = "oak_log";
+            if (input.IsKeyPressed(Keys.D7)) SelectedBlock = "oak_leaves";
+            if (input.IsKeyPressed(Keys.D8)) SelectedBlock = "glass";
             #endregion
         }
 
