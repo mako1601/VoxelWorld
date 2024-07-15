@@ -1,0 +1,120 @@
+﻿using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL4;
+using static OpenTK.Graphics.OpenGL4.GL;
+
+using VoxelWorld.Entity;
+using VoxelWorld.Graphics;
+using VoxelWorld.Graphics.Renderer;
+
+namespace VoxelWorld.Window
+{
+    public class Interface
+    {
+        public struct Info
+        {
+            public Player Player { get; set; }
+            public uint FPS { get; set; }
+            public Vector2 WindowSize { get; set; }
+        }
+
+        private readonly Text _debugText;
+        private readonly Crosshair _crosshair;
+
+        public Interface()
+        {
+            FontSize = 32;
+            DebugInfo = false;
+            Crosshair = true;
+            _debugText = new Text(FontSize);
+            _crosshair = new Crosshair();
+        }
+
+        public uint FontSize { get; set; }
+        public bool DebugInfo { get; set; }
+        public bool Crosshair { get; set; }
+
+        public void DrawDebufInfo(Color4 color, Info info)
+        {
+            if (DebugInfo == false) return;
+
+            DrawInfo(color, info);
+        }
+
+        public void DrawCrosshair(Vector2i windowSize)
+        {
+            if (Crosshair == false) return;
+
+            _crosshair.Draw(windowSize);
+        }
+
+        private void DrawLine(string text, float x, float y, float scale/*, Vector2 dir*/)
+        {
+            ActiveTexture(TextureUnit.Texture0);
+            BindVertexArray(_debugText.VAO.ID);
+
+            //float angle_rad = (float)Math.Atan2(dir.Y, dir.X);
+            //Matrix4 rotateM = Matrix4.CreateRotationZ(angle_rad);
+            Matrix4 transOriginM = Matrix4.CreateTranslation(x, y, 0f);
+
+            float char_x = 0f;
+            foreach (var c in text)
+            {
+                if (_debugText.Characters.ContainsKey(c) == false)
+                {
+                    continue;
+                }
+                Text.Character ch = _debugText.Characters[c];
+
+                float w = ch.Size.X * scale;
+                float h = ch.Size.Y * scale;
+                float xrel = char_x + ch.Bearing.X * scale;
+                float yrel = (ch.Size.Y - ch.Bearing.Y) * scale;
+
+                char_x += (ch.Advance >> 6) * scale;
+
+                Matrix4 scaleM = Matrix4.CreateScale(w, h, 1f);
+                Matrix4 transRelM = Matrix4.CreateTranslation(xrel, yrel, 0.0f);
+
+                UniformMatrix4(0, false, ref transOriginM);
+                //UniformMatrix4(1, false, ref rotateM);
+                UniformMatrix4(1, false, ref transRelM);
+                UniformMatrix4(2, false, ref scaleM);
+
+                BindTexture(TextureTarget.Texture2D, ch.TextureID);
+
+                DrawArrays(PrimitiveType.Triangles, 0, 6);
+            }
+
+            BindVertexArray(0);
+            BindTexture(TextureTarget.Texture2D, 0);
+        }
+
+        private void DrawInfo(Color4 color, Info info)
+        {
+            Enable(EnableCap.Blend);
+            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            _debugText.Shader.Bind();
+            _debugText.Shader.SetMatrix4("projection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
+            _debugText.Shader.SetVector3("color", ((Vector4)color).Xyz);
+
+            DrawLine($"FPS: {info.FPS}", 5f, 20f, 0.5f);
+            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 40f, 0.5f);
+            DrawLine($"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})", 5f, 60f, 0.5f);
+            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 80f, 0.5f);
+            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 100f, 0.5f);
+            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 120f, 0.5f);
+            DrawLine(info.Player.Camera.Ray.Block == null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 140f, 0.5f);
+            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 160f, 0.5f);
+            DrawLine($"Chunk Coords XZ: {World.Chunks.GetChunkPosition((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Z))}", 5f, 180f, 0.5f);
+
+            Disable(EnableCap.Blend);
+        }
+
+        public void Delete()
+        {
+            _debugText.Delete();
+            _crosshair.Delete();
+        }
+    }
+}
