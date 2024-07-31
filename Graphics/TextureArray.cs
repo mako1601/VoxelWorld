@@ -24,7 +24,7 @@ namespace VoxelWorld.Graphics
             TexParameter(Texture2DArray, TextureMaxLevel, 4);
             StbImage.stbi_set_flip_vertically_on_load(1);
 
-            List<ImageResult> textures = new List<ImageResult>();
+            var textures = new List<ImageResult>();
 
             for (int i = 0; i < filepaths.Count; i++)
             {
@@ -54,7 +54,7 @@ namespace VoxelWorld.Graphics
         }
 
         public void Bind() => BindTexture(Texture2DArray, ID);
-        public void Unbind() => BindTexture(Texture2DArray, 0);
+        public static void Unbind() => BindTexture(Texture2DArray, 0);
         public void Delete() => DeleteTexture(ID);
     }
 }

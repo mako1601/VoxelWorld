@@ -4,6 +4,7 @@ using static OpenTK.Graphics.OpenGL4.GL;
 
 using VoxelWorld.World;
 using VoxelWorld.Window;
+using System.Collections.Generic;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -13,7 +14,7 @@ namespace VoxelWorld.Graphics.Renderer
         private readonly ShaderProgram _shader;
         private readonly VAO _vao;
         private readonly VBO _vboVertices;
-        private VBO _vboUV;
+        private readonly VBO _vboUV;
         private readonly VBO _vboBrightness;
         private readonly EBO _ebo;
 
@@ -86,8 +87,8 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Delete();
         }
 
-        private static readonly List<Vector3> _vertices = new List<Vector3>
-        {
+        private static readonly List<Vector3> _vertices =
+        [
             // top
             (0f, 1f, 0f),
             (0f, 1f, 1f),
@@ -105,9 +106,9 @@ namespace VoxelWorld.Graphics.Renderer
             (1f, 1f, 0f),
             (1f, 1f, 1f),
             (1f, 0f, 1f)
-        };
-        private static List<Vector3> _uv = new List<Vector3>
-        {
+        ];
+        private static readonly List<Vector3> _uv =
+        [
             (0f, 1f, 0f),
             (0f, 0f, 0f),
             (1f, 0f, 0f),
@@ -122,18 +123,18 @@ namespace VoxelWorld.Graphics.Renderer
             (1f, 1f, 0f),
             (0f, 1f, 0f),
             (0f, 0f, 0f)
-        };
-        private static readonly List<float> _brightness = new List<float>
-        {
+        ];
+        private static readonly List<float> _brightness =
+        [
             1f, 1f, 1f, 1f,
             0.95f, 0.95f, 0.95f, 0.95f,
             0.9f, 0.9f, 0.9f, 0.9f
-        };
-        private static readonly List<uint> _indices = new List<uint>
-        {
+        ];
+        private static readonly List<uint> _indices =
+        [
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,
             8, 9, 10, 10, 11, 8
-        };
+        ];
     }
 }

@@ -55,20 +55,20 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Delete();
         }
 
-        private static readonly List<Vector2> _vertices = new List<Vector2>
-        {
+        private static readonly List<Vector2> _vertices =
+        [
             (-1f, -1f),
             ( 1f, -1f),
             ( 1f,  1f),
             (-1f,  1f),
-        };
-        private static readonly List<Vector2> _textureVertices = new List<Vector2>
-        {
+        ];
+        private static readonly List<Vector2> _textureVertices =
+        [
             (0f, 1f),
             (1f, 1f),
             (1f, 0f),
             (0f, 0f)
-        };
-        private static readonly List<uint> _indices = new List<uint> { 0, 1, 2, 2, 3, 0 };
+        ];
+        private static readonly List<uint> _indices = [0, 1, 2, 2, 3, 0];
     }
 }

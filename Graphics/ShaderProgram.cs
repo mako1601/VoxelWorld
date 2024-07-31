@@ -15,15 +15,18 @@ namespace VoxelWorld.Graphics
             int vertexShader = CreateShader(ShaderType.VertexShader);
             ShaderSource(vertexShader, LoadShaderSource(vertexShaderFilename));
             CompileShader(vertexShader);
+            CheckCompileErrors(vertexShader, "VERTEX");
 
             int fragmentShader = CreateShader(ShaderType.FragmentShader);
             ShaderSource(fragmentShader, LoadShaderSource(fragmentShaderFilename));
             CompileShader(fragmentShader);
+            CheckCompileErrors(fragmentShader, "FRAGMENT");
 
             AttachShader(ID, vertexShader);
             AttachShader(ID, fragmentShader);
 
             LinkProgram(ID);
+            CheckCompileErrors(ID, "PROGRAM");
 
             DeleteShader(vertexShader);
             DeleteShader(fragmentShader);
@@ -66,19 +69,42 @@ namespace VoxelWorld.Graphics
 
         private static string LoadShaderSource(string filePath)
         {
-            string shaderSource = string.Empty;
-
             try
             {
-                using StreamReader sr = new StreamReader($"Resources/Shaders/{filePath}");
-                shaderSource = sr.ReadToEnd();
+                using var sr = new StreamReader($"resources/shaders/{filePath}");
+                string shaderSource = sr.ReadToEnd();
+                Console.WriteLine($"[DEBUG] The shader source file 'resources/shaders/{filePath}' was loaded successfully");
+                return shaderSource;
             }
             catch (FileNotFoundException ex)
             {
-                Console.WriteLine($"Failed to load shader source file '{ex.FileName}'");
+                Console.WriteLine($"[DEBUG] Failed to load shader source file '{ex.FileName}'");
+                return string.Empty;
             }
+        }
 
-            return shaderSource;
+        private static void CheckCompileErrors(int shader, string type)
+        {
+            if (type.Equals("PROGRAM"))
+            {
+                GetProgram(shader, GetProgramParameterName.LinkStatus, out var success);
+
+                if (success == 0)
+                {
+                    GetProgramInfoLog(shader, out var infoLog);
+                    Console.WriteLine($"[DEBUG] Program linking error: {type}\n{infoLog}");
+                }
+            }
+            else
+            {
+                GetShader(shader, ShaderParameter.CompileStatus, out var success);
+
+                if (success == 0)
+                {
+                    GetShaderInfoLog(shader, out var infoLog);
+                    Console.WriteLine($"[DEBUG] Shader compilation error: {type}\n{infoLog}");
+                }
+            }
         }
     }
 }

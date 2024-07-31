@@ -26,8 +26,8 @@ namespace VoxelWorld.World
         #endregion
 
         #region properties
-        public static List<string> Blocks { get; } = new List<string>
-        {
+        public static List<string> Blocks { get; } =
+        [
             "air",
             "stone",
             "dirt",
@@ -37,7 +37,7 @@ namespace VoxelWorld.World
             "oak_log",
             "oak_leaves",
             "glass"
-        };
+        ];
         public string Name { get; set; }
         public TypeOfBlock Type { get; set; }
         public Vector3i Position { get; set; }
@@ -69,7 +69,7 @@ namespace VoxelWorld.World
 
         #region data
         // perhaps it is better to store and use it in a shader
-        private static readonly Dictionary<Face, List<Vector3>> blockVertexData = new Dictionary<Face, List<Vector3>>
+        private static readonly Dictionary<Face, List<Vector3>> blockVertexData = new()
         {
             {Face.Front,
                 new List<Vector3>
@@ -126,7 +126,7 @@ namespace VoxelWorld.World
                 }
             }
         };
-        private static readonly Dictionary<Face, List<Vector2>> blockUVData = new Dictionary<Face, List<Vector2>>
+        private static readonly Dictionary<Face, List<Vector2>> blockUVData = new()
         {
             {Face.Front, new List<Vector2>
                 {
@@ -177,7 +177,7 @@ namespace VoxelWorld.World
                 }
             }
         };
-        private static readonly Dictionary<string, TypeOfBlock> blockTypeData = new Dictionary<string, TypeOfBlock>
+        private static readonly Dictionary<string, TypeOfBlock> blockTypeData = new()
         {
             {"air", TypeOfBlock.Air},
             {"stone", TypeOfBlock.Cube},
@@ -189,7 +189,7 @@ namespace VoxelWorld.World
             {"oak_leaves", TypeOfBlock.Leaves},
             {"glass", TypeOfBlock.Glass}
         };
-        private static readonly Dictionary<string, List<string>> textureFilepathData = new Dictionary<string, List<string>>
+        private static readonly Dictionary<string, List<string>> textureFilepathData = new()
         {
             {"stone", new List<string>{ "blocks/stone.png" }},
             {"dirt", new List<string>{ "blocks/dirt.png" }},
@@ -200,7 +200,7 @@ namespace VoxelWorld.World
             {"oak_leaves", new List<string>{ "blocks/oak_leaves.png" }},
             {"glass", new List<string>{ "blocks/glass.png" }}
         };
-        private static readonly Dictionary<string, List<uint>> textureIndecies = new Dictionary<string, List<uint>>
+        private static readonly Dictionary<string, List<uint>> textureIndecies = new()
         {
             {"stone", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
             {"dirt", new List<uint>{ 0, 0, 0, 0, 0, 0 }},

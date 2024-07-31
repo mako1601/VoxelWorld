@@ -3,6 +3,7 @@ using OpenTK.Graphics.OpenGL4;
 
 using VoxelWorld.Graphics;
 using static VoxelWorld.World.Block;
+using System.Threading.Tasks.Dataflow;
 
 namespace VoxelWorld.World
 {
@@ -23,12 +24,12 @@ namespace VoxelWorld.World
             private VBO BrightnessVBO { get; set; }
             private EBO EBO { get; set; }
 
-            public Data(string name)
+            public Data()
             {
-                Vertices = new List<Vector3>();
-                UVs = new List<Vector3>();
-                BrightnessLevels = new List<float>();
-                Indices = new List<uint>();
+                Vertices         = [];
+                UVs              = [];
+                BrightnessLevels = [];
+                Indices          = [];
             }
 
             public void InitOpenGL()
@@ -61,20 +62,6 @@ namespace VoxelWorld.World
                 VAO.Delete();
             }
         }
-
-        private struct ChunksAround
-        {
-            public Chunk? frontChunk, backChunk, leftChunk, rightChunk;
-            public bool hasChunkFront, hasChunkBack, hasChunkLeft, hasChunkRight;
-
-            public ChunksAround(Vector2i position)
-            {
-                hasChunkFront = Chunks.ChunksArray.TryGetValue(position + ( 0,  1), out frontChunk);
-                hasChunkBack  = Chunks.ChunksArray.TryGetValue(position + ( 0, -1), out backChunk);
-                hasChunkLeft  = Chunks.ChunksArray.TryGetValue(position + (-1,  0), out leftChunk);
-                hasChunkRight = Chunks.ChunksArray.TryGetValue(position + ( 1,  0), out rightChunk);
-            }
-        }
         #endregion
 
         #region properties
@@ -84,17 +71,17 @@ namespace VoxelWorld.World
         #endregion
 
         #region field
-        private Dictionary<string, Data> _data; 
+        private readonly Dictionary<string, Data> _data; 
         #endregion
 
         #region constructor
         public Chunk(Vector2i position)
         {
             Position = position;
-            Blocks = new Dictionary<Vector3i, Block>();
+            Blocks   = [];
+            _data    = [];
 
-            _data = new Dictionary<string, Data>();
-
+            // filling the chunk with blocks
             for (int y = 0; y < Size.Y; y++)
             {
                 for (int x = 0; x < Size.X; x++)
@@ -123,7 +110,7 @@ namespace VoxelWorld.World
             
             for (int i = 1; i < Block.Blocks.Count; i++)
             {
-                _data.Add(Block.Blocks[i], new Data(Block.Blocks[i]));
+                _data.Add(Block.Blocks[i], new Data());
             }
         }
         #endregion
@@ -131,7 +118,7 @@ namespace VoxelWorld.World
         #region methods
         public void Generate()
         {
-            if (Chunks.ChunksArray == null) throw new Exception("ChunksArray is null");
+            if (Chunks.ChunksArray is null) throw new Exception("ChunksArray is null");
 
             foreach (var data in _data)
             {
@@ -140,8 +127,7 @@ namespace VoxelWorld.World
                 _data[data.Key] = newBD;
             }
 
-            ChunksAround chunksAround = new ChunksAround(Position);
-
+            // creating a mesh
             for (int y = 0; y < Size.Y; y++)
             {
                 for (int x = 0; x < Size.X; x++)
@@ -150,9 +136,9 @@ namespace VoxelWorld.World
                     {
                         Block currentBlock = Blocks[(x, y, z)];
 
-                        if (currentBlock.Type != TypeOfBlock.Air)
+                        if (currentBlock.Type is not TypeOfBlock.Air)
                         {
-                            SelectionOfFaces(x, y, z, currentBlock, chunksAround);
+                            SelectionOfFaces(x, y, z, currentBlock);
                         }
                     }
                 }
@@ -208,158 +194,73 @@ namespace VoxelWorld.World
             return new Vector3i(worldX, local.Y, worldZ);
         }
 
-        private void SelectionOfFaces(int x, int y, int z, Block cb, ChunksAround ca)
+        private void SelectionOfFaces(int x, int y, int z, Block currentBlock)
         {
-            // front face
-            if (z < Size.Z - 1)
+            IntegrateSideFaces(currentBlock, Face.Front, (x, y, z + 1), Position + ( 0,  1), (x, y, 0));
+            IntegrateSideFaces(currentBlock, Face.Back,  (x, y, z - 1), Position + ( 0, -1), (x, y, Size.Z - 1));
+            IntegrateSideFaces(currentBlock, Face.Left,  (x - 1, y, z), Position + (-1,  0), (Size.X - 1, y, z));
+            IntegrateSideFaces(currentBlock, Face.Right, (x + 1, y, z), Position + ( 1,  0), (0, y, z));
+            IntegrateTopBottomFaces(currentBlock, x, y, z);
+        }
+
+        private void IntegrateSideFaces(Block currentBlock, Face face, Vector3i nextBlock, Vector2i chunkOffset, Vector3i borderBlock)
+        {
+            if (Chunks.ChunksArray is null) throw new Exception("[DEBUG] ChunksArray is null!");
+
+            if ((face == Face.Front && currentBlock.Position.Z < Size.Z - 1) ||
+                (face == Face.Back  && currentBlock.Position.Z > 0) ||
+                (face == Face.Left  && currentBlock.Position.X > 0) ||
+                (face == Face.Right && currentBlock.Position.X < Size.X - 1))
             {
-                TypeOfBlock frontBlock = Blocks.TryGetValue(new (x, y, z + 1), out _) ? Blocks[(x, y, z + 1)].Type : TypeOfBlock.Air;
-                
-                if (frontBlock == TypeOfBlock.Air || 
-                frontBlock == TypeOfBlock.Leaves || 
-                frontBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
+                if (Blocks.TryGetValue(nextBlock, out var block) && IsFaceIntegrable(block, currentBlock))
                 {
-                    IntegrateFaceIntoChunk(cb, Face.Front);
-                }
-            }
-            else {
-                if (ca.hasChunkFront == true)
-                {
-                    TypeOfBlock frontChunkBlockType = ca.frontChunk.Blocks[(x, y, 0)].Type;
-
-                    if (frontChunkBlockType == TypeOfBlock.Air || 
-                    frontChunkBlockType == TypeOfBlock.Leaves || 
-                    frontChunkBlockType == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                    {
-                        IntegrateFaceIntoChunk(cb, Face.Front);
-                    }
-                }
-                else
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Front);
-                }
-            }
-
-            // back face
-            if (z > 0)
-            {
-                TypeOfBlock backBlock = Blocks.TryGetValue(new (x, y, z - 1), out _) ? Blocks[(x, y, z - 1)].Type : TypeOfBlock.Air;
-
-                if (backBlock == TypeOfBlock.Air || 
-                backBlock == TypeOfBlock.Leaves || 
-                backBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Back);
+                    IntegrateFaceIntoChunk(currentBlock, face);
                 }
             }
             else
             {
-                if (ca.hasChunkBack == true)
-                {
-                    TypeOfBlock backChunkBlockType = ca.backChunk.Blocks[(x, y, Size.Z - 1)].Type;
+                Chunks.ChunksArray.TryGetValue(chunkOffset, out var chunk);
 
-                    if (backChunkBlockType == TypeOfBlock.Air || 
-                    backChunkBlockType == TypeOfBlock.Leaves || 
-                    backChunkBlockType == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                    {
-                        IntegrateFaceIntoChunk(cb, Face.Back);
-                    }
-                }
-                else
+                if (chunk == null ||
+                    !chunk.Blocks.TryGetValue(borderBlock, out var block) ||
+                    IsFaceIntegrable(block, currentBlock))
                 {
-                    IntegrateFaceIntoChunk(cb, Face.Back);
+                    IntegrateFaceIntoChunk(currentBlock, face);
                 }
             }
+        }
 
-            // left face
-            if (x > 0)
-            {
-                TypeOfBlock leftBlock = Blocks.TryGetValue(new (x - 1, y, z), out _) ? Blocks[(x - 1, y, z)].Type : TypeOfBlock.Air;
-
-                if (leftBlock == TypeOfBlock.Air || 
-                leftBlock == TypeOfBlock.Leaves || 
-                leftBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Left);
-                }
-            }
-            else
-            {
-                if (ca.hasChunkLeft == true)
-                {
-                    TypeOfBlock leftChunkBlockType = ca.leftChunk.Blocks[(Size.X - 1, y, z)].Type;
-
-                    if (leftChunkBlockType == TypeOfBlock.Air || 
-                    leftChunkBlockType == TypeOfBlock.Leaves || 
-                    leftChunkBlockType == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                    {
-                        IntegrateFaceIntoChunk(cb, Face.Left);
-                    }
-                }
-                else
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Left);
-                }
-            }
-
-            // right face
-            if (x < Size.X - 1)
-            {
-                TypeOfBlock rightBlock = Blocks.TryGetValue(new (x + 1, y, z), out _) ? Blocks[(x + 1, y, z)].Type : TypeOfBlock.Air;
-
-                if (rightBlock == TypeOfBlock.Air || 
-                rightBlock == TypeOfBlock.Leaves || 
-                rightBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Right);
-                }
-            }
-            else
-            {
-                if (ca.hasChunkRight == true)
-                {
-                    TypeOfBlock rightChunkBlockType = ca.rightChunk.Blocks[(0, y, z)].Type;
-                    
-                    if (rightChunkBlockType == TypeOfBlock.Air || 
-                    rightChunkBlockType == TypeOfBlock.Leaves || 
-                    rightChunkBlockType == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass)
-                    {
-                        IntegrateFaceIntoChunk(cb, Face.Right);
-                    }
-                }
-                else
-                {
-                    IntegrateFaceIntoChunk(cb, Face.Right);
-                }
-            }
-
+        private void IntegrateTopBottomFaces(Block currentBlock, int x, int y, int z)
+        {
             // top face
-            TypeOfBlock upperBlock = Blocks.TryGetValue(new (x, y + 1, z), out _) ? Blocks[(x, y + 1, z)].Type : TypeOfBlock.Air;
-            if (y < Size.Y - 1 && (upperBlock == TypeOfBlock.Air || 
-                upperBlock == TypeOfBlock.Leaves || 
-                upperBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass))
+            Blocks.TryGetValue((x, y + 1, z), out var block);
+            if (y < Size.Y - 1 && IsFaceIntegrable(block, currentBlock))
             {
-                IntegrateFaceIntoChunk(cb, Face.Top);
-
+                IntegrateFaceIntoChunk(currentBlock, Face.Top);
             }
             else if (y >= Size.Y - 1)
             {
-                IntegrateFaceIntoChunk(cb, Face.Top);
+                IntegrateFaceIntoChunk(currentBlock, Face.Top);
             }
 
             // bottom face
-            TypeOfBlock lowerBlock = Blocks.TryGetValue(new (x, y - 1, z), out _) ? Blocks[(x, y - 1, z)].Type : TypeOfBlock.Air;
-
-            if (y > 0 && (lowerBlock == TypeOfBlock.Air || 
-                lowerBlock == TypeOfBlock.Leaves || 
-                lowerBlock == TypeOfBlock.Glass && cb.Type != TypeOfBlock.Glass))
+            Blocks.TryGetValue((x, y - 1, z), out block);
+            if (y > 0 && IsFaceIntegrable(block, currentBlock))
             {
-                IntegrateFaceIntoChunk(cb, Face.Bottom);
+                IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
             else if (y <= 0)
             {
-                IntegrateFaceIntoChunk(cb, Face.Bottom);
+                IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
+        }
+
+        private static bool IsFaceIntegrable(Block? nextBlock, Block currentblock)
+        {
+            var type = nextBlock?.Type ?? TypeOfBlock.Air;
+
+            return type is TypeOfBlock.Air || type is TypeOfBlock.Leaves ||
+                type is TypeOfBlock.Glass && currentblock.Type is not TypeOfBlock.Glass;
         }
 
         private void IntegrateFaceIntoChunk(Block block, Face face)
@@ -367,12 +268,12 @@ namespace VoxelWorld.World
             _data[block.Name].Vertices.AddRange(TransformedVertices(block, face));
 
             List<Vector2> uv = GetBlockUV(face);
-            List<Vector3> UVsandTexId = new List<Vector3>();
+            List<Vector3> UVsAndTexId = [];
             for (int i = 0; i < uv.Count; i++)
             {
-                UVsandTexId.Add(new Vector3(uv[i].X, uv[i].Y, GetTextureIndecies(block.Name)[(int)face]));
+                UVsAndTexId.Add(new Vector3(uv[i].X, uv[i].Y, GetTextureIndecies(block.Name)[(int)face]));
             }
-            _data[block.Name].UVs.AddRange(UVsandTexId);
+            _data[block.Name].UVs.AddRange(UVsAndTexId);
 
             Vector3i worldPosition = ConvertLocalToWorld(block.Position);
 
@@ -500,7 +401,7 @@ namespace VoxelWorld.World
 
         private static List<Vector3> TransformedVertices(Block block, Face face)
         {
-            List<Vector3> transformedVertices = new List<Vector3>();
+            List<Vector3> transformedVertices = [];
 
             foreach (var vertex in GetBlockVertices(face))
             {

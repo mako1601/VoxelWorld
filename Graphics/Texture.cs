@@ -24,7 +24,7 @@ namespace VoxelWorld.Graphics
             TexParameter(Texture2D, TextureMaxLevel, 4);
             StbImage.stbi_set_flip_vertically_on_load(1);
             
-            ImageResult texture = new ImageResult();
+            ImageResult texture;
 
             try
             {

@@ -19,13 +19,13 @@ namespace VoxelWorld.Graphics.Renderer
         public ShaderProgram Shader { get; private set; }
         public VAO VAO { get; private set; }
         public VBO VBO { get; private set; }
-        public Dictionary<uint, Character> Characters { get; private set; } = new Dictionary<uint, Character>();
+        public Dictionary<uint, Character> Characters { get; private set; } = [];
 
         public Text(uint height)
         {
             Shader = new ShaderProgram("text.glslv", "text.glslf");
-            Library library = new Library();
-            Face face = new Face(library, "Resources/Fonts/BitmapMc.ttf");
+            var library = new Library();
+            var face = new Face(library, "Resources/Fonts/BitmapMc.ttf");
             face.SetPixelSizes(0, height);
             PixelStore(PixelStoreParameter.UnpackAlignment, 1);
             ActiveTexture(TextureUnit.Texture0);
@@ -49,7 +49,7 @@ namespace VoxelWorld.Graphics.Renderer
                     TextureParameter(texture, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
                     TextureParameter(texture, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
-                    Character character = new Character
+                    var character = new Character
                     {
                         TextureID = texture,
                         Size = new Vector2(bitmap.Width, bitmap.Rows),
@@ -84,8 +84,8 @@ namespace VoxelWorld.Graphics.Renderer
             Shader.Delete();
         }
 
-        private static List<float> _vquad = new List<float>
-        {
+        private static readonly List<float> _vquad =
+        [
         //   x    y   u   v
             0f, -1f, 0f, 0f,
             0f,  0f, 0f, 1f,
@@ -93,6 +93,6 @@ namespace VoxelWorld.Graphics.Renderer
             0f, -1f, 0f, 0f,
             1f,  0f, 1f, 1f,
             1f, -1f, 1f, 0f
-        };
+        ];
     }
 }

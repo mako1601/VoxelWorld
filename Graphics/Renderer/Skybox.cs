@@ -37,7 +37,7 @@ namespace VoxelWorld.Graphics.Renderer
             TexParameter(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
             StbImage.stbi_set_flip_vertically_on_load(0);
 
-            ImageResult texture = new ImageResult();
+            ImageResult texture;
 
             for (int i = 0; i < _skyboxPaths.Count; i++)
             {
@@ -49,6 +49,8 @@ namespace VoxelWorld.Graphics.Renderer
                 catch (FileNotFoundException ex)
                 {
                     Console.WriteLine($"Failed to load texture file '{ex.FileName}'");
+                    texture = ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/missing_texture.png"),
+                        ColorComponents.RedGreenBlue);
                 }
 
                 TexImage2D(TextureCubeMapPositiveX + i, 0,
@@ -86,17 +88,17 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Delete();
         }
 
-        private static readonly List<string> _skyboxPaths = new List<string>
-        {
+        private static readonly List<string> _skyboxPaths =
+        [
             "skybox/right.png",
             "skybox/left.png",
             "skybox/top.png",
             "skybox/bottom.png",
             "skybox/front.png",
             "skybox/back.png"
-        };
-        private static readonly List<Vector3> _skyboxVertices = new List<Vector3>
-        {
+        ];
+        private static readonly List<Vector3> _skyboxVertices =
+        [
             (-1f, -1f,  1f),
             ( 1f, -1f,  1f),
             ( 1f,  1f,  1f),
@@ -126,15 +128,15 @@ namespace VoxelWorld.Graphics.Renderer
             ( 1f, -1f, -1f),
             ( 1f, -1f,  1f),
             (-1f, -1f,  1f)
-        };
-        private static readonly List<uint> _skyboxIndices = new List<uint>
-        {
+        ];
+        private static readonly List<uint> _skyboxIndices =
+        [
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,
             8, 9, 10, 10, 11, 8,
             12, 13, 14, 14, 15, 12,
             16, 17, 18, 18, 19, 16,
             20, 21, 22, 22, 23, 20
-        };
+        ];
     }
 }

@@ -20,8 +20,9 @@ namespace VoxelWorld.World
         #region constructor
         public Chunks()
         {
-            Shader = new ShaderProgram("shader.glslv", "shader.glslf");
-            Textures = new Dictionary<string, TextureArray>();
+            Shader   = new ShaderProgram("shader.glslv", "shader.glslf");
+            Textures = [];
+
             for (int i = 1; i < Blocks.Count; i++) // i = 0 - air, but it has no texture :)
             {
                 Textures.Add(Blocks[i], new TextureArray(GetTextureFilepath(Blocks[i])));

@@ -74,8 +74,8 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Delete();
         }
 
-        private static readonly List<Vector3> _lineVertices = new List<Vector3>
-        {
+        private static readonly List<Vector3> _lineVertices =
+        [
             (-0.004f, -0.004f, -0.004f),
             ( 1.004f, -0.004f, -0.004f),
             ( 1.004f, -0.004f,  1.004f),
@@ -84,16 +84,16 @@ namespace VoxelWorld.Graphics.Renderer
             ( 1.004f,  1.004f, -0.004f),
             ( 1.004f,  1.004f,  1.004f),
             (-0.004f,  1.004f,  1.004f)
-        };
-        private static readonly List<uint> _lineIndices = new List<uint>
-        {
+        ];
+        private static readonly List<uint> _lineIndices =
+        [
             0, 1, 1, 2, 2, 3, 3, 0,
             0, 4, 1, 5, 2, 6, 3, 7,
             4, 5, 5, 6, 6, 7, 7, 4
-        };
+        ];
 
-        private static readonly List<Vector3> _blockVertices = new List<Vector3>
-        {
+        private static readonly List<Vector3> _blockVertices =
+        [
             (-0.009f, -0.009f,  1.009f),
             ( 1.009f, -0.009f,  1.009f),
             ( 1.009f,  1.009f,  1.009f),
@@ -123,15 +123,15 @@ namespace VoxelWorld.Graphics.Renderer
             ( 1.009f, -0.009f, -0.009f),
             ( 1.009f, -0.009f,  1.009f),
             (-0.009f, -0.009f,  1.009f)
-        };
-        private static readonly List<uint> _blockIndices = new List<uint>
-        {
+        ];
+        private static readonly List<uint> _blockIndices =
+        [
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,
             8, 9, 10, 10, 11, 8,
             12, 13, 14, 14, 15, 12,
             16, 17, 18, 18, 19, 16,
             20, 21, 22, 22, 23, 20
-        };
+        ];
     }
 }
