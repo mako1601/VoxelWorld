@@ -45,10 +45,11 @@ void main() {
         vec4 texColor = texture(uTexture, aTexCoord);
         if (texColor.a < 0.5) discard;
 
-        float distance = distance(viewPos, aFragPos);
-        float fogFactor = getFogFactor(distance, nearPlane, farPlane);
-        float alpha = getFogFactorAlpha(distance, nearPlane, farPlane);
+        // turned off the fog for a while
+        //float distance = distance(viewPos, aFragPos);
+        //float fogFactor = getFogFactor(distance, nearPlane, farPlane);
+        //float alpha = getFogFactorAlpha(distance, nearPlane, farPlane);
 
-        fColor = aColor * texColor * mix(aColor, vec4(fogColor, 1.0), fogFactor) * (1 - alpha);
+        fColor = aColor * texColor;// * mix(aColor, vec4(fogColor, 1.0), fogFactor) * (1 - alpha);
     }
 }

@@ -51,23 +51,20 @@ namespace VoxelWorld.Window
 
     public class Game : GameWindow
     {
-        #region fields
         // temporary disfigurement
-        private Chunks chunks;
-        private Outline outline;
-        private Skybox skybox;
-        private Interface gameInterface;
-        private readonly Player player;
+        private Chunks _chunks;
+        private Outline _outline;
+        private Skybox _skybox;
+        private Interface _interface;
+        private readonly Player _player;
 
-        private Parameters parameters;
-        private Matrixes matrixes;
-        private uint frameCount = 0;
-        private uint FPS = 0;
-        private double timer = 0;
+        private Parameters _parameters;
+        private Matrixes _matrixes;
+        private uint _frameCount = 0;
+        private uint _fps = 0;
+        private double _timer = 0;
         private bool _isWhiteWorld = false;
-        #endregion
 
-        #region constructors
         public Game(int width, int height)
             : base(new GameWindowSettings
             {
@@ -82,12 +79,12 @@ namespace VoxelWorld.Window
                 //Vsync = VSyncMode.Off,
                 //NumberOfSamples = 16, // MSAA x2, x4, x8, x16
                 Title = "VoxelWorld",
-                MinimumSize = new(480, 360),
+                MinimumSize = (480, 360),
             })
         {
-            player = new Player(new(8, 32, 8));
-            player.Camera.AspectRatio = width / (float)height;
-            CenterWindow(new Vector2i(width, height));
+            _player = new Player((8, 32, 8));
+            _player.Camera.AspectRatio = width / (float)height;
+            CenterWindow((width, height));
         }
 
         public Game(int width, int height, string title)
@@ -103,16 +100,14 @@ namespace VoxelWorld.Window
                 //Vsync = VSyncMode.On,
                 //NumberOfSamples = 16, // MSAA x2, x4, x8, x16
                 Title = title,
-                MinimumSize = new(480, 360),
+                MinimumSize = (480, 360),
             })
         {
-            player = new Player(new(8, 32, 8));
-            player.Camera.AspectRatio = width / (float)height;
-            CenterWindow(new Vector2i(width, height));
+            _player = new Player((8, 32, 8));
+            _player.Camera.AspectRatio = width / (float)height;
+            CenterWindow((width, height));
         }
-        #endregion
 
-        #region methods
         protected override void OnLoad()
         {
             base.OnLoad();
@@ -122,23 +117,23 @@ namespace VoxelWorld.Window
             DepthFunc(DepthFunction.Less);
 
             // init
-            skybox = new Skybox();
-            chunks = new Chunks();
-            outline = new Outline();
-            gameInterface = new Interface(player.SelectedBlock);
+            _skybox = new Skybox();
+            _chunks = new Chunks();
+            _outline = new Outline();
+            _interface = new Interface(_player.SelectedBlock);
 
-            matrixes = new Matrixes(player);
-            parameters = new Parameters(_isWhiteWorld, player);
+            _matrixes = new Matrixes(_player);
+            _parameters = new Parameters(_isWhiteWorld, _player);
         }
 
         protected override void OnUnload()
         {
             base.OnUnload();
 
-            gameInterface.Delete();
-            skybox.Delete();
-            outline.Delete();
-            chunks.Delete();
+            _interface.Delete();
+            _skybox.Delete();
+            _outline.Delete();
+            _chunks.Delete();
         }
 
         protected override void OnResize(ResizeEventArgs e)
@@ -146,28 +141,28 @@ namespace VoxelWorld.Window
             base.OnResize(e);
 
             Viewport(0, 0, ClientSize.X, ClientSize.Y);
-            player.Camera.AspectRatio = ClientSize.X / (float)ClientSize.Y;
+            _player.Camera.AspectRatio = ClientSize.X / (float)ClientSize.Y;
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             base.OnUpdateFrame(args);
 
-            frameCount++;
-            timer += args.Time;
+            _frameCount++;
+            _timer += args.Time;
             
-            if (timer > 1)
+            if (_timer > 1)
             {
-                FPS = frameCount;
+                _fps = _frameCount;
                 Process curPorcess = Process.GetCurrentProcess();
-                Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
+                Title = $"VoxelWorld FPS: {_fps}, {args.Time * 1000d:0.0000}ms, "
                     + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
                 curPorcess.Dispose();
-                frameCount = 0;
-                timer -= 1;
+                _frameCount = 0;
+                _timer -= 1;
             }
 
-            if (IsFocused == false) return;
+            if (IsFocused is false) return;
 
             KeyboardState keyboard = KeyboardState;
             MouseState mouse = MouseState;
@@ -178,7 +173,7 @@ namespace VoxelWorld.Window
             }
             if (keyboard.IsKeyPressed(Keys.Q))
             {
-                gameInterface.DebugInfo = !gameInterface.DebugInfo;
+                _interface.DebugInfo = !_interface.DebugInfo;
             }
             if (keyboard.IsKeyPressed(Keys.Z))
             {
@@ -193,8 +188,8 @@ namespace VoxelWorld.Window
                 _isWhiteWorld = !_isWhiteWorld;
             }
 
-            player.KeyboardInput(keyboard, (float)args.Time);
-            CursorState = player.MouseInput(mouse, CursorState, args.Time);
+            _player.KeyboardInput(keyboard, (float)args.Time);
+            CursorState = _player.MouseInput(mouse, CursorState, args.Time);
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -203,13 +198,13 @@ namespace VoxelWorld.Window
 
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            matrixes.Update(player);
-            parameters.Update(_isWhiteWorld, player);
+            _matrixes.Update(_player);
+            _parameters.Update(_isWhiteWorld, _player);
 
-            skybox.Draw(matrixes);
-            chunks.Draw(matrixes, parameters);
-            outline.Draw(matrixes, player.Camera.Ray.Block);
-            gameInterface.Draw(Color4.Black, new Interface.Info { Player = player, FPS = FPS, WindowSize = ClientSize });
+            _skybox.Draw(_matrixes);
+            _chunks.Draw(_matrixes, _parameters);
+            _outline.Draw(_matrixes, _player.Camera.Ray.Block);
+            _interface.Draw(Color4.Yellow, new Interface.Info { Player = _player, FPS = _fps, WindowSize = ClientSize });
 
             Context.SwapBuffers();
         }
@@ -218,8 +213,7 @@ namespace VoxelWorld.Window
         {
             base.OnMouseWheel(e);
 
-            player.MouseScroll(e.OffsetY);
+            _player.MouseScroll(e.OffsetY);
         }
-        #endregion
     }
 }

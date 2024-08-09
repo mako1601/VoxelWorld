@@ -21,7 +21,6 @@ namespace VoxelWorld.Entity
 
     public class Player
     {
-        #region properties
         /// <summary>
         /// default: 8f (8 blocks per second)
         /// </summary>
@@ -33,26 +32,20 @@ namespace VoxelWorld.Entity
         /// default: 5f (5 blocks)
         /// </summary>
         public float RayDistance { get; set; } = 5f;
-        #endregion
 
-        #region fields
         private bool _isGrabbed = false;
         private bool _firstMove = true;
         private Vector2 _lastPos;
 
-        private double _lastLeftClickTime = 0d;
+        private double _lastLeftClickTime  = 0d;
         private double _lastRightClickTime = 0d;
-        #endregion
 
-        #region constructor
         public Player(Vector3 position)
         {
             Position = position;
-            Camera = new Camera();
+            Camera   = new Camera();
         }
-        #endregion
 
-        #region methods
         public void KeyboardInput(KeyboardState input, float time)
         {
             #region Movement
@@ -92,6 +85,9 @@ namespace VoxelWorld.Entity
             if (input.IsKeyPressed(Keys.D6)) SelectedBlock = "oak_log";
             if (input.IsKeyPressed(Keys.D7)) SelectedBlock = "oak_leaves";
             if (input.IsKeyPressed(Keys.D8)) SelectedBlock = "glass";
+            if (input.IsKeyPressed(Keys.R))  SelectedBlock = "red_light_source";
+            if (input.IsKeyPressed(Keys.G))  SelectedBlock = "green_light_source";
+            if (input.IsKeyPressed(Keys.B))  SelectedBlock = "blue_light_source";
             #endregion
         }
 
@@ -99,7 +95,7 @@ namespace VoxelWorld.Entity
         {
             if (input.IsButtonPressed(MouseButton.Middle))
             {
-                if (_isGrabbed == true)
+                if (_isGrabbed is true)
                 {
                     state = CursorState.Normal;
                     _isGrabbed = false;
@@ -112,20 +108,20 @@ namespace VoxelWorld.Entity
                 }
             }
 
-            if (_isGrabbed == true)
+            if (_isGrabbed is true)
             {
-                if (_firstMove == true)
+                if (_firstMove is true)
                 {
-                    _lastPos = new Vector2(input.X, input.Y);
+                    _lastPos   = (input.X, input.Y);
                     _firstMove = false;
                 }
                 else
                 {
                     float deltaX = input.X - _lastPos.X;
                     float deltaY = _lastPos.Y - input.Y;
-                    _lastPos = new Vector2(input.X, input.Y);
+                    _lastPos     = (input.X, input.Y);
 
-                    Camera.Yaw += deltaX * Camera.Sensitivity;
+                    Camera.Yaw   += deltaX * Camera.Sensitivity;
                     Camera.Pitch += deltaY * Camera.Sensitivity;
 
                     if (Camera.Pitch > 89.999f)
@@ -168,6 +164,5 @@ namespace VoxelWorld.Entity
                 Camera.FOV = 140f;
             }
         }
-        #endregion
     }
 }

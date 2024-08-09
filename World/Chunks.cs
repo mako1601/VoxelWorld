@@ -11,13 +11,14 @@ namespace VoxelWorld.World
 {
     public class Chunks
     {
-        #region properties
         public static Dictionary<Vector2i, Chunk>? ChunksArray { get; private set; } = null;
         public ShaderProgram Shader { get; private set; }
         public static Dictionary<string, TextureArray>? Textures { get; set; } = null;
-        #endregion
+        public static LightSolver SolverR { get; private set; } = new LightSolver(0);
+        public static LightSolver SolverG { get; private set; } = new LightSolver(1);
+        public static LightSolver SolverB { get; private set; } = new LightSolver(2);
+        public static LightSolver SolverS { get; private set; } = new LightSolver(3);
 
-        #region constructor
         public Chunks()
         {
             Shader   = new ShaderProgram("shader.glslv", "shader.glslf");
@@ -30,33 +31,41 @@ namespace VoxelWorld.World
 
             ChunksArray = new Dictionary<Vector2i, Chunk>
             {
-                {( 0,  0), new Chunk(( 0,  0))},
-                {( 1,  0), new Chunk(( 1,  0))},
-                {( 1,  1), new Chunk(( 1,  1))},
-                {( 0,  1), new Chunk(( 0,  1))},
-                {(-1,  1), new Chunk((-1,  1))},
-                {(-1,  0), new Chunk((-1,  0))},
-                {(-1, -1), new Chunk((-1, -1))},
-                {( 0, -1), new Chunk(( 0, -1))},
-                {( 1, -1), new Chunk(( 1, -1))}
+                { ( 0,  0), new Chunk(( 0,  0)) },
+                { ( 1,  0), new Chunk(( 1,  0)) },
+                { ( 1,  1), new Chunk(( 1,  1)) },
+                { ( 0,  1), new Chunk(( 0,  1)) },
+                { (-1,  1), new Chunk((-1,  1)) },
+                { (-1,  0), new Chunk((-1,  0)) },
+                { (-1, -1), new Chunk((-1, -1)) },
+                { ( 0, -1), new Chunk(( 0, -1)) },
+                { ( 1, -1), new Chunk(( 1, -1)) }
             };
 
             foreach (var chunk in ChunksArray)
             {
-                chunk.Value.Generate();
+                chunk.Value.CreateLightmap();
+            }
+
+            SolverR.Solve();
+            SolverG.Solve();
+            SolverB.Solve();
+            SolverS.Solve();
+
+            foreach (var chunk in ChunksArray)
+            {
+                chunk.Value.CreateMesh();
             }
         }
-        #endregion
-
-        #region methods
         /// <summary>
         /// Draws all the chunks.
         /// </summary>
+        /// <param name="matrix"></param>
         /// <param name="parameters"></param>
         public void Draw(Matrixes matrix, Parameters parameters)
         {
-            if (ChunksArray == null) throw new Exception("ChunksArray is null");
-            if (Textures == null) throw new Exception("Textures is null");
+            if (ChunksArray is null) throw new Exception("[CRITICAL] ChunksArray is null");
+            if (Textures is null)    throw new Exception("[WARNING] Textures is null");
 
             Enable(EnableCap.CullFace);
             CullFace(CullFaceMode.Back);
@@ -78,29 +87,11 @@ namespace VoxelWorld.World
             Disable(EnableCap.CullFace);
             Disable(EnableCap.Blend);
         }
-
         /// <summary>
-        /// Updates vertices, textures, etc. for the сhunk
-        /// </summary>
-        /// <param name="name">Name of the block (ID)</param>
-        /// <param name="bp">World coordinates of the block</param>
-        /// <param name="cp">Coordinates of the chunk</param>
-        public static void Update(string name, Vector3i bp, Vector2i cp)
-        {
-            if (ChunksArray == null) throw new Exception("ChunksArray is null");
-
-            ChunksArray[cp].SetBlock(name, ConvertWorldToLocal(bp, cp));
-            ChunksArray[cp].Generate();
-        }
-
-        /// <summary>
-        /// Deallocates all resources
+        /// Deallocates all resources.
         /// </summary>
         public void Delete()
         {
-            if (ChunksArray == null) throw new Exception("ChunksArray is null");
-            if (Textures == null) throw new Exception("Textures is null");
-
             foreach (var texture in Textures)
             {
                 texture.Value.Delete();
@@ -115,152 +106,271 @@ namespace VoxelWorld.World
         }
 
         /// <summary>
-        /// Updates vertices, textures, etc. for the nearest сhunks
-        ///       []
-        ///       |
+        /// Updates vertices, textures, etc. for the nearest сhunks.
+        ///  []  []  []
+        ///    \ |  /
         /// [] - [] - []
-        ///      |
-        ///     []
+        ///    / |  \
+        ///  []  []  []
         /// </summary>
-        /// <param name="bp">Block position</param>
-        /// <param name="cp">Chunk position</param>
-        private static void UpdateNearestChunks(Vector3i bp, Vector2i cp)
+        /// <param name="c">Coordinates of the chunk</param>
+        // needs a lot of optimization
+        private static void UpdateNearestChunks(Vector2i c)
         {
-            if (ChunksArray == null) throw new Exception("ChunksArray is null");
+            List<Vector2i> chunkOffsets =
+            [
+                ( 1,  0),
+                (-1,  0),
+                ( 0, -1),
+                ( 0,  1),
 
-            var updateConditions = new (Vector2i offset, Func<bool> condition)[]
-            {
-                (new(-1,  0), () => bp.X == 0),
-                (new( 1,  0), () => bp.X == Chunk.Size.X - 1),
-                (new( 0, -1), () => bp.Z == 0),
-                (new( 0,  1), () => bp.Z == Chunk.Size.Z - 1),
-            };
+                ( 1,  1),
+                ( 1, -1),
+                (-1,  1),
+                (-1, -1),
+            ];
 
-            foreach (var (offset, condition) in updateConditions)
+            foreach (var offset in chunkOffsets)
             {
-                Vector2i updatedChunkPosition = cp + offset;
-                if (ChunksArray.TryGetValue(updatedChunkPosition, out Chunk? chunk) && condition())
+                var newC = c + offset;
+                if (ChunksArray.TryGetValue(newC, out var chunk))
                 {
-                    chunk.Generate();
+                    chunk.UpdateMesh();
                 }
             }
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="wb"></param>
+        /// <returns></returns>
+        public static Block? GetBlock(Vector3i wb)
+        {
+            if (wb.Y > Chunk.Size.Y - 1 || wb.Y < 0) return null;
 
+            var c = GetChunkPosition(wb.Xz); // c - chunk coordinates
+            if (ChunksArray.TryGetValue(c, out var chunk))
+            {
+                return chunk.GetBlock(ConvertWorldToLocal(wb, c));
+            }
+            else 
+            {
+                return null;
+            }
+        }
         /// <summary>
         /// Gets the Block by its world coordinates of the block.
         /// </summary>
-        /// <param name="x">World coordinate x of the block</param>
-        /// <param name="y">World coordinate y of the bloc</param>
-        /// <param name="z">World coordinate z of the bloc</param>
+        /// <param name="wx">World coordinate x of the block</param>
+        /// <param name="wy">World coordinate y of the block</param>
+        /// <param name="wz">World coordinate z of the block</param>
+        /// <param name="isRayCast"></param>
         /// <returns>The Block, if there is no block - null.</returns>
-        public static Block? GetBlock(int bx, int by, int bz)
+        public static Block? GetBlock(int wx, int wy, int wz, bool isRayCast = false)
         {
-            if (ChunksArray == null) return null;
-            if (by > Chunk.Size.Y - 1 || by < 0) return null;
+            if (wy > Chunk.Size.Y - 1 || wy < 0) return null;
 
-            Vector2i cp = GetChunkPosition(bx, bz); // cp - chunkPosition
-            if (ChunksArray.TryGetValue(cp, out Chunk? chunk))
+            var c = GetChunkPosition(wx, wz); // c - chunk coordinates
+            if (ChunksArray.TryGetValue(c, out var chunk))
             {
-                string name = chunk.GetBlock(ConvertWorldToLocal(bx, by, bz, cp)).Name;
-
-                return new Block(name, bx, by, bz);
+                if (isRayCast is true)
+                {
+                    return new Block(chunk.GetBlock(ConvertWorldToLocal(wx, wy, wz, c)).Name, wx, wy, wz);
+                }
+                else
+                {
+                    return chunk.GetBlock(ConvertWorldToLocal(wx, wy, wz, c));
+                }
             }
-
-            return null;
+            else
+            {
+                return null;
+            }
         }
-
         /// <summary>
         /// Replaces the block with the selected block.
         /// </summary>
         /// <param name="name">Block name</param>
         /// <param name="ray">Ray from the camera</param>
         // TODO: optimize face update
-        public static void SetBlock(string name, Ray ray)
+        public static void SetBlock(string name, Ray ray, Movement movement)
         {
-            if (ChunksArray == null) throw new Exception("ChunksArray is null");
-            if (ray.Block == null) throw new Exception("Block is null");
+            Vector3i wb, lb;
+            Vector2i c;
 
-            if (name == "air")
+            if (movement is Movement.Destroy)
             {
-                Vector2i chunkPosition = GetChunkPosition(ray.Block.Position.X, ray.Block.Position.Z);
-                Update(name, ray.Block.Position, chunkPosition);
-                UpdateNearestChunks(ConvertWorldToLocal(ray.Block.Position, chunkPosition), chunkPosition);
+                wb = ray.Block.Position;
+                c  = GetChunkPosition(wb.Xz);
+                lb = ConvertWorldToLocal(wb, c);
             }
             else
             {
-                Vector3i position = ray.Block.Position + ray.Normal;
-                if (position.Y < 0 || position.Y > Chunk.Size.Y - 1) return;
+                wb = ray.Block.Position + ray.Normal;
+                if (wb.Y < 0 || wb.Y > Chunk.Size.Y - 1) return;
+                c = GetChunkPosition(wb.X, wb.Z);
+                if (ChunksArray.ContainsKey(c) is false) return;
+                lb = ConvertWorldToLocal(wb, c);
+            }
 
-                Vector2i chunkPosition = GetChunkPosition(position.X, position.Z);
-                if (ChunksArray.ContainsKey(chunkPosition) == false) return;
+            ChunksArray[c].SetBlock(name, lb, GetBlock(wb).Light);
+            UpdateLight(GetBlock(wb), wb);
+            ChunksArray[c].UpdateMesh();
+            UpdateNearestChunks(c);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="wb"></param>
+        /// <param name="channel"></param>
+        /// <returns></returns>
+        public static byte GetLight(Vector3i wb, int channel) =>
+            GetBlock(wb)?.GetLight(channel) ?? 0;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="wx"></param>
+        /// <param name="wy"></param>
+        /// <param name="wz"></param>
+        /// <param name="channel"></param>
+        /// <returns></returns>
+        public static byte GetLight(int wx, int wy, int wz, int channel) =>
+            GetBlock(wx, wy, wz)?.GetLight(channel) ?? 0;
 
-                Update(name, position, chunkPosition);
-                UpdateNearestChunks(ConvertWorldToLocal(position, chunkPosition), chunkPosition);
+        public static void UpdateLight(Block block, Vector3i wb)
+        {
+            if (block.IsLightPassing is true)
+            {
+                SolverR.Remove(wb);
+                SolverG.Remove(wb);
+                SolverB.Remove(wb);
+                
+                SolverR.Solve();
+                SolverG.Solve();
+                SolverB.Solve();
+
+                if (GetLight(wb.X, wb.Y + 1, wb.Z, 3) == 0xF)
+                {
+                    for (int i = wb.Y; i >= 0; i--)
+                    {
+                        if (GetBlock(wb.X, i, wb.Z).IsLightPassing is false) break;
+
+                        SolverS.Add(wb.X, i, wb.Z, 0xF);
+                    }
+                }
+
+                SolverR.Add(wb.X + 1, wb.Y, wb.Z); SolverG.Add(wb.X + 1, wb.Y, wb.Z); SolverB.Add(wb.X + 1, wb.Y, wb.Z); SolverS.Add(wb.X + 1, wb.Y, wb.Z);
+                SolverR.Add(wb.X - 1, wb.Y, wb.Z); SolverG.Add(wb.X - 1, wb.Y, wb.Z); SolverB.Add(wb.X - 1, wb.Y, wb.Z); SolverS.Add(wb.X - 1, wb.Y, wb.Z);
+                SolverR.Add(wb.X, wb.Y + 1, wb.Z); SolverG.Add(wb.X, wb.Y + 1, wb.Z); SolverB.Add(wb.X, wb.Y + 1, wb.Z); SolverS.Add(wb.X, wb.Y + 1, wb.Z);
+                SolverR.Add(wb.X, wb.Y - 1, wb.Z); SolverG.Add(wb.X, wb.Y - 1, wb.Z); SolverB.Add(wb.X, wb.Y - 1, wb.Z); SolverS.Add(wb.X, wb.Y - 1, wb.Z);
+                SolverR.Add(wb.X, wb.Y, wb.Z + 1); SolverG.Add(wb.X, wb.Y, wb.Z + 1); SolverB.Add(wb.X, wb.Y, wb.Z + 1); SolverS.Add(wb.X, wb.Y, wb.Z + 1);
+                SolverR.Add(wb.X, wb.Y, wb.Z - 1); SolverG.Add(wb.X, wb.Y, wb.Z - 1); SolverB.Add(wb.X, wb.Y, wb.Z - 1); SolverS.Add(wb.X, wb.Y, wb.Z - 1);
+
+                SolverR.Solve();
+                SolverG.Solve();
+                SolverB.Solve();
+                SolverS.Solve();
+            }
+            else
+            {
+                SolverR.Remove(wb);
+                SolverG.Remove(wb);
+                SolverB.Remove(wb);
+                SolverS.Remove(wb);
+
+                for (int i = wb.Y - 1; i >= 0; i--)
+                {
+                    SolverS.Remove(wb.X, i, wb.Z);
+
+                    if (GetBlock(wb.X, i - 1, wb.Z).IsLightPassing is false) break;
+                }
+
+                SolverR.Solve();
+                SolverG.Solve();
+                SolverB.Solve();
+                SolverS.Solve();
+
+                if (block?.IsLightSource is true)
+                {
+                    switch (block.Name)
+                    {
+                        case "red_light_source":
+                            SolverR.Add(wb, 13);
+                            break;
+
+                        case "green_light_source":
+                            SolverG.Add(wb, 13);
+                            break;
+
+                        case "blue_light_source":
+                            SolverB.Add(wb, 13);
+                            break;
+                    }
+                
+                    SolverR.Solve();
+                    SolverG.Solve();
+                    SolverB.Solve();
+                }
             }
         }
-
         /// <summary>
         /// Gets the chunk position by XZ coordinates of the block.
         /// </summary>
-        /// <param name="bXZ">World coordinates XZ of the block</param>
+        /// <param name="wxz">World coordinates XZ of the block</param>
         /// <returns>The vector of the chunk coordinates.</returns>
-        public static Vector2i GetChunkPosition(Vector2i bXZ)
+        public static Vector2i GetChunkPosition(Vector2i wxz)
         {
-            int chunkX = bXZ.X < 0 ? bXZ.X / (Chunk.Size.X + 1) : bXZ.X / Chunk.Size.X;
-            int chunkZ = bXZ.Y < 0 ? bXZ.Y / (Chunk.Size.Z + 1) : bXZ.Y / Chunk.Size.Z;
+            int cx = wxz.X < 0 ? wxz.X / (Chunk.Size.X + 1) : wxz.X / Chunk.Size.X;
+            int cz = wxz.Y < 0 ? wxz.Y / (Chunk.Size.Z + 1) : wxz.Y / Chunk.Size.Z;
 
-            if (bXZ.X < 0) chunkX--;
-            if (bXZ.Y < 0) chunkZ--;
+            if (wxz.X < 0) cx--;
+            if (wxz.Y < 0) cz--;
 
-            return new Vector2i(chunkX, chunkZ);
+            return (cx, cz);
         }
-
         /// <summary>
         /// Gets the chunk position by XZ coordinates of the block.
         /// </summary>
-        /// <param name="x">World coordinate x of the block</param>
-        /// <param name="z">World coordinate z of the block</param>
+        /// <param name="wx">World coordinate x of the block</param>
+        /// <param name="wz">World coordinate z of the block</param>
         /// <returns>The vector of the chunk coordinates.</returns>
-        public static Vector2i GetChunkPosition(int x, int z)
+        public static Vector2i GetChunkPosition(int wx, int wz)
         {
-            int chunkX = x < 0 ? x / (Chunk.Size.X + 1) : x / Chunk.Size.X;
-            int chunkZ = z < 0 ? z / (Chunk.Size.Z + 1) : z / Chunk.Size.Z;
+            int cx = wx < 0 ? wx / (Chunk.Size.X + 1) : wx / Chunk.Size.X;
+            int cz = wz < 0 ? wz / (Chunk.Size.Z + 1) : wz / Chunk.Size.Z;
 
-            if (x < 0) chunkX--;
-            if (z < 0) chunkZ--;
+            if (wx < 0) cx--;
+            if (wz < 0) cz--;
 
-            return new Vector2i(chunkX, chunkZ);
+            return (cx, cz);
         }
-
         /// <summary>
         /// Converts the world coordinates of the block to local coordinates within the chunk.
         /// </summary>
-        /// <param name="bp">World coordinates of the block</param>
-        /// <param name="cp">Coordinates of the chunk</param>
+        /// <param name="wb">World coordinates of the block</param>
+        /// <param name="c">Coordinates of the chunk</param>
         /// <returns>The vector of the block's local coordinates.</returns>
-        public static Vector3i ConvertWorldToLocal(Vector3i bp, Vector2i cp)
+        public static Vector3i ConvertWorldToLocal(Vector3i wb, Vector2i c)
         {
-            int x = bp.X - cp.X * Chunk.Size.X;
-            int z = bp.Z - cp.Y * Chunk.Size.Z;
+            int lx = wb.X - c.X * Chunk.Size.X;
+            int lz = wb.Z - c.Y * Chunk.Size.Z;
 
-            return new(x, bp.Y, z);
+            return (lx, wb.Y, lz);
         }
-
         /// <summary>
         /// Converts the world coordinates of the block to local coordinates within the chunk.
         /// </summary>
-        /// <param name="bx">World coordinate x of the block</param>
-        /// <param name="by">World coordinate y of the block</param>
-        /// <param name="bz">World coordinate z of the block</param>
-        /// <param name="cp">Chunk position in the world</param>
+        /// <param name="wx">World coordinate x of the block</param>
+        /// <param name="wy">World coordinate y of the block</param>
+        /// <param name="wz">World coordinate z of the block</param>
+        /// <param name="c">Coordinates of the chunk</param>
         /// <returns>The vector of the block's local coordinates.</returns>
-        public static Vector3i ConvertWorldToLocal(int bx, int by, int bz, Vector2i cp)
+        public static Vector3i ConvertWorldToLocal(int wx, int wy, int wz, Vector2i c)
         {
-            int x = bx - cp.X * Chunk.Size.X;
-            int z = bz - cp.Y * Chunk.Size.Z;
+            int lx = wx - c.X * Chunk.Size.X;
+            int lz = wz - c.Y * Chunk.Size.Z;
 
-            return new(x, by, z);
+            return (lx, wy, lz);
         }
-        #endregion
     }
 }

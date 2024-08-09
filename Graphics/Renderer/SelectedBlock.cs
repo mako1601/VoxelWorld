@@ -4,7 +4,6 @@ using static OpenTK.Graphics.OpenGL4.GL;
 
 using VoxelWorld.World;
 using VoxelWorld.Window;
-using System.Collections.Generic;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -37,22 +36,22 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Draw(Interface.Info info)
         {
-            if (Chunks.Textures == null) throw new Exception("Textures is null");
+            if (Chunks.Textures is null) throw new Exception("[WARNING] Textures is null");
 
             Enable(EnableCap.CullFace);
             CullFace(CullFaceMode.Back);
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            if (_name != info.Player.SelectedBlock)
+            if (!_name.Equals(info.Player.SelectedBlock))
             {
                 _name = info.Player.SelectedBlock;
                 for (int face = 0, index = 0; face < _uv.Count; index++)
                 {
-                    _uv[face] = new Vector3(_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = new Vector3(_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = new Vector3(_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = new Vector3(_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
+                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
+                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
+                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
+                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
                 }
 
                 _vboUV.Bind();

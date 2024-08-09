@@ -4,7 +4,6 @@ namespace VoxelWorld.World
 {
     public class Block
     {
-        #region enums
         public enum TypeOfBlock
         {
             Air = 0,
@@ -23,9 +22,6 @@ namespace VoxelWorld.World
             Right,
             Bottom
         }
-        #endregion
-
-        #region properties
         public static List<string> Blocks { get; } =
         [
             "air",
@@ -36,181 +32,163 @@ namespace VoxelWorld.World
             "gravel",
             "oak_log",
             "oak_leaves",
-            "glass"
+            "glass",
+            "red_light_source",
+            "green_light_source",
+            "blue_light_source",
         ];
-        public string Name { get; set; }
-        public TypeOfBlock Type { get; set; }
-        public Vector3i Position { get; set; }
-        #endregion
 
-        #region constructors
-        public Block(string name, int x, int y, int z)
-        {
-            Name = name;
-            Type = GetBlockType(name);
-            Position = new Vector3i(x, y, z);
-        }
-        public Block(string name, Vector3i position)
-        {
-            Name = name;
-            Type = GetBlockType(name);
-            Position = position;
-        }
-        #endregion
+        public string Name         { get; set; }
+        public Vector3i Position   { get; set; }
+        public TypeOfBlock Type    { get; private set; }
+        /// <summary>
+        /// 0xRGBS
+        /// </summary>
+        public ushort Light        { get; private set; }
+        public bool IsLightSource  { get; private set; }
+        public bool IsLightPassing { get; private set; }
 
-        #region methods
+        public Block(string name, Vector3i lb, ushort light = 0x0000)
+        {
+            Name           = name;
+            Position       = lb;
+            Type           = GetBlockType(name);
+            Light          = light;
+            IsLightSource  = GetIsLightSource(name);
+            IsLightPassing = GetIsLightPassing(name);
+        }
+        public Block(string name, int lx, int ly, int lz, ushort light = 0x0000) : this(name, (lx, ly, lz), light) { }
+
         public static List<Vector3> GetBlockVertices(Face face) => blockVertexData[face];
         public static List<Vector2> GetBlockUV(Face face) => blockUVData[face];
         public static TypeOfBlock GetBlockType(string name) => blockTypeData[name];
         public static List<string> GetTextureFilepath(string name) => textureFilepathData[name];
         public static List<uint> GetTextureIndecies(string name) => textureIndecies[name];
-        public override string ToString() => $"{Name} {Position}";
-        #endregion
+        public static bool GetIsLightSource(string name) => blockIsLightSourceData[name];
+        public static bool GetIsLightPassing(string name) => blockIsLightPassingData[name];
+        public override string ToString() => $"'{Name}', {Position}";
 
-        #region data
-        // perhaps it is better to store and use it in a shader
+        public byte GetLight(int channel) => (byte)((Light >> (12 - channel * 4)) & 0xF);
+        public byte GetLightR() => (byte)((Light >> 12) & 0xF);
+        public byte GetLightG() => (byte)((Light >> 8) & 0xF);
+        public byte GetLightB() => (byte)((Light >> 4) & 0xF);
+        public byte GetLightS() => (byte)(Light & 0xF);
+
+        public void SetLight(int channel, int value) => Light = (ushort)((Light & (0xFFFF & (~(0xF << (12 - channel * 4))))) | (value << (12 - channel * 4)));
+        public void SetLightR(int value) => Light = (ushort)((Light & 0x0FFF) | (value << 12));
+        public void SetLightG(int value) => Light = (ushort)((Light & 0xF0FF) | (value << 8));
+        public void SetLightB(int value) => Light = (ushort)((Light & 0xFF0F) | (value << 4));
+        public void SetLightS(int value) => Light = (ushort)((Light & 0xFFF0) | value);
+
+        // perhaps it is better to store and use some things in a shader, and some in a json file
         private static readonly Dictionary<Face, List<Vector3>> blockVertexData = new()
         {
-            {Face.Front,
-                new List<Vector3>
-                {
-                    (0f, 0f, 1f),
-                    (1f, 0f, 1f),
-                    (1f, 1f, 1f),
-                    (0f, 1f, 1f)
-                }
-            },
-            {Face.Back,
-                new List<Vector3>
-                {
-                    (0f, 0f, 0f),
-                    (0f, 1f, 0f),
-                    (1f, 1f, 0f),
-                    (1f, 0f, 0f)
-                }
-            },
-            {Face.Left,
-                new List<Vector3>
-                {
-                    (0f, 0f, 0f),
-                    (0f, 0f, 1f),
-                    (0f, 1f, 1f),
-                    (0f, 1f, 0f)
-                }
-            },
-            {Face.Right,
-                new List<Vector3>
-                {
-                    (1f, 0f, 0f),
-                    (1f, 1f, 0f),
-                    (1f, 1f, 1f),
-                    (1f, 0f, 1f)
-                }
-            },
-            {Face.Top,
-                new List<Vector3>
-                {
-                    (0f, 1f, 0f),
-                    (0f, 1f, 1f),
-                    (1f, 1f, 1f),
-                    (1f, 1f, 0f)
-                }
-            },
-            {Face.Bottom,
-                new List<Vector3>
-                {
-                    (0f, 0f, 0f),
-                    (1f, 0f, 0f),
-                    (1f, 0f, 1f),
-                    (0f, 0f, 1f)
-                }
-            }
+            { Face.Front,  [ (0f, 0f, 1f), (1f, 0f, 1f), (1f, 1f, 1f), (0f, 1f, 1f) ] },
+            { Face.Back,   [ (0f, 0f, 0f), (0f, 1f, 0f), (1f, 1f, 0f), (1f, 0f, 0f) ] },
+            { Face.Left,   [ (0f, 0f, 0f), (0f, 0f, 1f), (0f, 1f, 1f), (0f, 1f, 0f) ] },
+            { Face.Right,  [ (1f, 0f, 0f), (1f, 1f, 0f), (1f, 1f, 1f), (1f, 0f, 1f) ] },
+            { Face.Top,    [ (0f, 1f, 0f), (0f, 1f, 1f), (1f, 1f, 1f), (1f, 1f, 0f) ] },
+            { Face.Bottom, [ (0f, 0f, 0f), (1f, 0f, 0f), (1f, 0f, 1f), (0f, 0f, 1f) ] }
         };
         private static readonly Dictionary<Face, List<Vector2>> blockUVData = new()
         {
-            {Face.Front, new List<Vector2>
-                {
-                    (0f, 0f),
-                    (1f, 0f),
-                    (1f, 1f),
-                    (0f, 1f)
-                }
-            },
-            {Face.Back, new List<Vector2>
-                {
-                    (1f, 0f),
-                    (1f, 1f),
-                    (0f, 1f),
-                    (0f, 0f)
-                }
-            },
-            {Face.Left, new List<Vector2>
-                {
-                    (0f, 0f),
-                    (1f, 0f),
-                    (1f, 1f),
-                    (0f, 1f)
-                }
-            },
-            {Face.Right, new List<Vector2>
-                {
-                    (1f, 0f),
-                    (1f, 1f),
-                    (0f, 1f),
-                    (0f, 0f)
-                }
-            },
-            {Face.Top, new List<Vector2>
-                {
-                    (0f, 1f),
-                    (0f, 0f),
-                    (1f, 0f),
-                    (1f, 1f)
-                }
-            },
-            {Face.Bottom, new List<Vector2>
-                {
-                    (0f, 0f),
-                    (1f, 0f),
-                    (1f, 1f),
-                    (0f, 1f)
-                }
-            }
+            { Face.Front,  [ (0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f) ] },
+            { Face.Back,   [ (1f, 0f), (1f, 1f), (0f, 1f), (0f, 0f) ] },
+            { Face.Left,   [ (0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f) ] },
+            { Face.Right,  [ (1f, 0f), (1f, 1f), (0f, 1f), (0f, 0f) ] },
+            { Face.Top,    [ (0f, 1f), (0f, 0f), (1f, 0f), (1f, 1f) ] },
+            { Face.Bottom, [ (0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f) ] }
         };
         private static readonly Dictionary<string, TypeOfBlock> blockTypeData = new()
         {
-            {"air", TypeOfBlock.Air},
-            {"stone", TypeOfBlock.Cube},
-            {"dirt", TypeOfBlock.Cube},
-            {"grass", TypeOfBlock.Cube},
-            {"sand", TypeOfBlock.Cube},
-            {"gravel", TypeOfBlock.Cube},
-            {"oak_log", TypeOfBlock.Log},
-            {"oak_leaves", TypeOfBlock.Leaves},
-            {"glass", TypeOfBlock.Glass}
+            { "air", TypeOfBlock.Air },
+
+            { "stone",  TypeOfBlock.Cube },
+            { "dirt",   TypeOfBlock.Cube },
+            { "grass",  TypeOfBlock.Cube },
+            { "sand",   TypeOfBlock.Cube },
+            { "gravel", TypeOfBlock.Cube },
+
+            { "oak_log",    TypeOfBlock.Log },
+            { "oak_leaves", TypeOfBlock.Leaves },
+
+            { "glass", TypeOfBlock.Glass },
+
+            { "red_light_source",   TypeOfBlock.Cube },
+            { "green_light_source", TypeOfBlock.Cube },
+            { "blue_light_source",  TypeOfBlock.Cube }
         };
         private static readonly Dictionary<string, List<string>> textureFilepathData = new()
         {
-            {"stone", new List<string>{ "blocks/stone.png" }},
-            {"dirt", new List<string>{ "blocks/dirt.png" }},
-            {"grass", new List<string>{ "blocks/grass_block.png", "blocks/grass_block_side.png", "blocks/dirt.png"}},
-            {"sand", new List<string>{ "blocks/sand.png"}},
-            {"gravel", new List<string>{ "blocks/gravel.png" }},
-            {"oak_log", new List<string>{ "blocks/oak_log.png", "blocks/oak_log_top.png"}},
-            {"oak_leaves", new List<string>{ "blocks/oak_leaves.png" }},
-            {"glass", new List<string>{ "blocks/glass.png" }}
+            { "stone",  [ "blocks/stone.png" ] },
+            { "dirt",   [ "blocks/dirt.png" ] },
+            { "grass",  [ "blocks/grass_block.png", "blocks/grass_block_side.png", "blocks/dirt.png" ] },
+            { "sand",   [ "blocks/sand.png" ] },
+            { "gravel", [ "blocks/gravel.png" ] },
+
+            { "oak_log",    [ "blocks/oak_log.png", "blocks/oak_log_top.png" ] },
+            { "oak_leaves", [ "blocks/oak_leaves.png" ] },
+
+            { "glass", [ "blocks/glass.png" ] },
+
+            { "red_light_source",   [ "blocks/red_light_source.png" ] },
+            { "green_light_source", [ "blocks/green_light_source.png" ] },
+            { "blue_light_source",  [ "blocks/blue_light_source.png" ] }
         };
         private static readonly Dictionary<string, List<uint>> textureIndecies = new()
         {
-            {"stone", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
-            {"dirt", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
-            {"grass", new List<uint>{ 0, 1, 1, 1, 1, 2 }},
-            {"sand", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
-            {"gravel", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
-            {"oak_log", new List<uint>{ 1, 0, 0, 0, 0, 1 }},
-            {"oak_leaves", new List<uint>{ 0, 0, 0, 0, 0, 0 }},
-            {"glass", new List<uint>{ 0, 0, 0, 0, 0, 0 }}
+            { "stone",  [ 0, 0, 0, 0, 0, 0 ] },
+            { "dirt",   [ 0, 0, 0, 0, 0, 0 ] },
+            { "grass",  [ 0, 1, 1, 1, 1, 2 ] },
+            { "sand",   [ 0, 0, 0, 0, 0, 0 ] },
+            { "gravel", [ 0, 0, 0, 0, 0, 0 ] },
+
+            { "oak_log",    [ 1, 0, 0, 0, 0, 1 ] },
+            { "oak_leaves", [ 0, 0, 0, 0, 0, 0 ] },
+
+            { "glass", [ 0, 0, 0, 0, 0, 0 ] },
+
+            { "red_light_source",   [ 0, 0, 0, 0, 0, 0 ] },
+            { "green_light_source", [ 0, 0, 0, 0, 0, 0 ] },
+            { "blue_light_source",  [ 0, 0, 0, 0, 0, 0 ] },
         };
-        #endregion
+        private static readonly Dictionary<string, bool> blockIsLightSourceData = new()
+        {
+            { "air", false },
+
+            { "stone",  false },
+            { "dirt",   false },
+            { "grass",  false },
+            { "sand",   false },
+            { "gravel", false },
+
+            { "oak_log",    false },
+            { "oak_leaves", false },
+
+            { "glass", false },
+
+            { "red_light_source",   true },
+            { "green_light_source", true },
+            { "blue_light_source",  true },
+        };
+        private static readonly Dictionary<string, bool> blockIsLightPassingData = new()
+        {
+            { "air", true },
+
+            { "stone",  false },
+            { "dirt",   false },
+            { "grass",  false },
+            { "sand",   false },
+            { "gravel", false },
+
+            { "oak_log",    false },
+            { "oak_leaves", false },
+
+            { "glass", true },
+
+            { "red_light_source",   false },
+            { "green_light_source", false },
+            { "blue_light_source",  false },
+        };
     }
 }

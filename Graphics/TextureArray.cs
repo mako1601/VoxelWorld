@@ -35,7 +35,7 @@ namespace VoxelWorld.Graphics
                 }
                 catch (FileNotFoundException ex)
                 {
-                    Console.WriteLine($"Failed to load texture file '{ex.FileName}'");
+                    Console.WriteLine($"[WARNING] Failed to load texture file '{ex.FileName}'");
                     textures.Add(ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/missing_texture.png"),
                         ColorComponents.RedGreenBlueAlpha));
                 }

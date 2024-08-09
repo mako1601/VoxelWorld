@@ -12,47 +12,42 @@ namespace VoxelWorld.Entity
 
         public Ray()
         {
-            Block = null;
-            Normal = new(0, 0, 0);
-            End = new(0, 0, 0);
+            Block  = null;
+            Normal = (0, 0, 0);
+            End    = (0, 0, 0);
         }
 
         public Ray(Block block, Vector3i normal, Vector3 end)
         {
-            Block = block;
+            Block  = block;
             Normal = normal;
-            End = end;
+            End    = end;
         }
     }
 
     public class Camera
     {
-        #region properties
         public float Sensitivity { get; set; } = 0.1f;
         public float FOV { get; set; } = 90f;
 
-        public Vector3 Up { get; set; } = Vector3.UnitY;
+        public Vector3 Up    { get; set; } =  Vector3.UnitY;
         public Vector3 Front { get; set; } = -Vector3.UnitZ;
-        public Vector3 Right { get; set; } = Vector3.UnitX;
+        public Vector3 Right { get; set; } =  Vector3.UnitX;
 
         public float Pitch { get; set; } = 0f;
-        public float Yaw { get; set; } = -90f;
+        public float Yaw   { get; set; } = -90f;
 
         public float AspectRatio { get; set; } = 0f;
 
         public Ray Ray { get; set; } = new Ray();
-        #endregion
 
-        #region constructor
         public Camera() { UpdateVectors(); }
-        #endregion
 
-        #region methods
         public Matrix4 GetViewMatrix(Vector3 position) =>
             Matrix4.LookAt(position, position + Front, Up);
         public Matrix4 GetProjectionMatrix() =>
             Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV),
-            AspectRatio, 0.001f, 1000f);
+                AspectRatio, 0.001f, 1000f);
 
         public void UpdateVectors()
         {
@@ -64,14 +59,14 @@ namespace VoxelWorld.Entity
             Front = Vector3.Normalize(front);
 
             Right = Vector3.Normalize(Vector3.Cross(Front, Vector3.UnitY));
-            Up = Vector3.Normalize(Vector3.Cross(Right, Front));
+            Up    = Vector3.Normalize(Vector3.Cross(Right, Front));
         }
 
         public double PressedDestroyBlock(double lastClickTime)
         {
-            if (Ray.Block != null && Ray.Block.Name != "air")
+            if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock("air", Ray);
+                Chunks.SetBlock("air", Ray, Movement.Destroy);
                 return 0;
             }
 
@@ -79,9 +74,9 @@ namespace VoxelWorld.Entity
         }
         public double DownDestroyBlock(double lastClickTime, double time)
         {
-            if (lastClickTime >= 0.2 && Ray.Block != null && Ray.Block.Name != "air")
+            if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock("air", Ray);
+                Chunks.SetBlock("air", Ray, Movement.Destroy);
                 return 0;
             }
 
@@ -90,9 +85,9 @@ namespace VoxelWorld.Entity
 
         public double PressedPlaceBlock(string block, double lastClickTime)
         {
-            if (Ray.Block != null && Ray.Block.Name != "air")
+            if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock(block, Ray);
+                Chunks.SetBlock(block, Ray, Movement.Place);
                 return 0;
             }
 
@@ -100,9 +95,9 @@ namespace VoxelWorld.Entity
         }
         public double DownPlaceBlock(string block, double lastClickTime, double time)
         {
-            if (lastClickTime >= 0.2 && Ray.Block != null && Ray.Block.Name != "air")
+            if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock(block, Ray);
+                Chunks.SetBlock(block, Ray, Movement.Place);
                 return 0;
             }
 
@@ -147,8 +142,8 @@ namespace VoxelWorld.Entity
             float t = 0f;
             while (t <= maxLength)
             {
-                Block? block = Chunks.GetBlock(ix, iy, iz);
-                if (block != null && block.Name != "air")
+                var block = Chunks.GetBlock(ix, iy, iz, true);
+                if (block is not null && block.Type is not Block.TypeOfBlock.Air)
                 {
                     end.X = posX + t * frontX;
                     end.Y = posY + t * frontY;
@@ -160,7 +155,8 @@ namespace VoxelWorld.Entity
                     if (steppedIndex == 1) normal.Y = -stepy;
                     if (steppedIndex == 2) normal.Z = -stepz;
 
-                    Ray = new Ray(block, normal, end); return;
+                    Ray = new Ray(block, normal, end);
+                    return;
                 }
                 if (txMax < tyMax)
                 {
@@ -202,8 +198,8 @@ namespace VoxelWorld.Entity
             end.Y = posY + t * frontY;
             end.Z = posZ + t * frontZ;
 
-            Ray = new Ray(); return;
+            Ray = new Ray();
+            return;
         }
-        #endregion
     }
 }
