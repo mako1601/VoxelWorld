@@ -114,7 +114,7 @@ namespace VoxelWorld.World
         ///  []  []  []
         /// </summary>
         /// <param name="c">Coordinates of the chunk</param>
-        // needs a lot of optimization
+        // TODO: needs a lot of optimization
         private static void UpdateNearestChunks(Vector2i c)
         {
             List<Vector2i> chunkOffsets =
@@ -140,10 +140,10 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Gets the Block by its world coordinates of the block.
         /// </summary>
-        /// <param name="wb"></param>
-        /// <returns></returns>
+        /// <param name="wb">World coordinates of the block</param>
+        /// <returns>The Block, if there is no block - null.</returns>
         public static Block? GetBlock(Vector3i wb)
         {
             if (wb.Y > Chunk.Size.Y - 1 || wb.Y < 0) return null;
@@ -219,24 +219,28 @@ namespace VoxelWorld.World
             UpdateNearestChunks(c);
         }
         /// <summary>
-        /// 
+        /// Gets the Light in the specified Channel by its block world coordinates.
         /// </summary>
-        /// <param name="wb"></param>
-        /// <param name="channel"></param>
-        /// <returns></returns>
+        /// <param name="wb">World coordinates of the block</param>
+        /// <param name="channel">Channel number</param>
+        /// <returns>The Light value in the specified channel.</returns>
         public static byte GetLight(Vector3i wb, int channel) =>
             GetBlock(wb)?.GetLight(channel) ?? 0;
         /// <summary>
-        /// 
+        /// Gets the Light in the specified Channel by its block world coordinates.
         /// </summary>
-        /// <param name="wx"></param>
-        /// <param name="wy"></param>
-        /// <param name="wz"></param>
-        /// <param name="channel"></param>
-        /// <returns></returns>
+        /// <param name="wx">World coordinate x of the block</param>
+        /// <param name="wy">World coordinate y of the block</param>
+        /// <param name="wz">World coordinate z of the block</param>
+        /// <param name="channel">Channel number</param>
+        /// <returns>The Light value in the specified channel.</returns>
         public static byte GetLight(int wx, int wy, int wz, int channel) =>
             GetBlock(wx, wy, wz)?.GetLight(channel) ?? 0;
-
+        /// <summary>
+        /// Updates light values.
+        /// </summary>
+        /// <param name="block">The Block</param>
+        /// <param name="wb">World coordinates of the block</param>
         public static void UpdateLight(Block block, Vector3i wb)
         {
             if (block.IsLightPassing is true)

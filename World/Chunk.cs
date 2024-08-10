@@ -100,7 +100,7 @@ namespace VoxelWorld.World
                 }
             }
 
-            // filling Lightmap
+            // calculation of sunlight
             for (int x = 0; x < Size.X; x++)
             {
                 for (int z = 0; z < Size.Z; z++)
@@ -109,7 +109,7 @@ namespace VoxelWorld.World
                     {
                         Block currentBlock = Blocks[(x, y, z)];
 
-                        if (currentBlock.Type is not TypeOfBlock.Air) break;
+                        if (currentBlock.IsLightPassing is false) break;
 
                         currentBlock.SetLightS(0xF);
                     }
@@ -123,8 +123,9 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Performs additional calculations of sunlight and light from sources.
         /// </summary>
+        // now that the world is generated/loaded flat and without light sources, these calculations are unnecessary
         public void CreateLightmap()
         {
             //for (int y = 0; y < Size.Y; y++)
@@ -135,41 +136,39 @@ namespace VoxelWorld.World
             //        {
             //            if (Blocks[(x, y, z)].IsLightSource)
             //            {
-            //                Chunks.SolverR.Add(ConvertLocalToWorld(x, y, z), 15);
-            //                Chunks.SolverG.Add(ConvertLocalToWorld(x, y, z), 15);
-            //                Chunks.SolverB.Add(ConvertLocalToWorld(x, y, z), 15);
+            //              // ...
             //            }
             //        }
             //    }
             //}
 
-            for (int x = 0; x < Size.X; x++)
-            {
-                for (int z = 0; z < Size.Z; z++)
-                {
-                    for (int y = Size.Y - 1; y > -1; y--)
-                    {
-                        Block currentBlock = Blocks[(x, y, z)];
+            //for (int x = 0; x < Size.X; x++)
+            //{
+            //    for (int z = 0; z < Size.Z; z++)
+            //    {
+            //        for (int y = Size.Y - 1; y > -1; y--)
+            //        {
+            //            Block currentBlock = Blocks[(x, y, z)];
 
-                        if (currentBlock.IsLightPassing is false) break;
+            //            if (currentBlock.IsLightPassing is false) break;
 
-                        if (Chunks.GetLight(ConvertLocalToWorld(x, y - 1, z), 3) == 0 ||
-                            Chunks.GetLight(ConvertLocalToWorld(x, y + 1, z), 3) == 0 ||
-                            Chunks.GetLight(ConvertLocalToWorld(x - 1, y, z), 3) == 0 ||
-                            Chunks.GetLight(ConvertLocalToWorld(x + 1, y, z), 3) == 0 ||
-                            Chunks.GetLight(ConvertLocalToWorld(x, y, z - 1), 3) == 0 ||
-                            Chunks.GetLight(ConvertLocalToWorld(x, y, z + 1), 3) == 0)
-                        {
-                            Chunks.SolverS.Add(ConvertLocalToWorld(x, y, z));
-                        }
+            //            if (Chunks.GetLight(ConvertLocalToWorld(x, y - 1, z), 3) == 0 ||
+            //                Chunks.GetLight(ConvertLocalToWorld(x, y + 1, z), 3) == 0 ||
+            //                Chunks.GetLight(ConvertLocalToWorld(x - 1, y, z), 3) == 0 ||
+            //                Chunks.GetLight(ConvertLocalToWorld(x + 1, y, z), 3) == 0 ||
+            //                Chunks.GetLight(ConvertLocalToWorld(x, y, z - 1), 3) == 0 ||
+            //                Chunks.GetLight(ConvertLocalToWorld(x, y, z + 1), 3) == 0)
+            //            {
+            //                Chunks.SolverS.Add(ConvertLocalToWorld(x, y, z));
+            //            }
 
-                        currentBlock.SetLightS(0xF);
-                    }
-                }
-            }
+            //            currentBlock.SetLightS(0xF);
+            //        }
+            //    }
+            //}
         }
         /// <summary>
-        /// 
+        /// Creates a mesh of the chunk.
         /// </summary>
         public void CreateMesh()
         {
@@ -198,24 +197,24 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Updates a mesh of the chunk.
         /// </summary>
         public void UpdateMesh()
         {
             // clear lists in _data
-            foreach (var data in Info)
+            Info = Info.ToDictionary(kvp => kvp.Key, kvp =>
             {
-                Data newData = data.Value;
-                newData.Clear();
-                Info[data.Key] = newData;
-            }
+                var newBD = kvp.Value;
+                newBD.Clear();
+                return newBD;
+            });
 
             CreateMesh();
         }
         /// <summary>
-        /// 
+        /// Draws the chunk.
         /// </summary>
-        /// <param name="textures"></param>
+        /// <param name="textures">Dictionary with all textures needed to draw a chunk</param>
         public void Draw(Dictionary<string, TextureArray> textures)
         {
             foreach (var data in Info)
@@ -226,62 +225,62 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Deallocates all resources.
         /// </summary>
         public void Delete()
         {
-            foreach (var data in Info)
+            Info = Info.ToDictionary(kvp => kvp.Key, kvp =>
             {
-                Data newBD = data.Value;
+                var newBD = kvp.Value;
                 newBD.DelOpenGL();
-                Info[data.Key] = newBD;
-            }
+                return newBD;
+            });
         }
         /// <summary>
-        /// 
+        /// Gets the Block by its local coordinates of the block.
         /// </summary>
-        /// <param name="lx"></param>
-        /// <param name="ly"></param>
-        /// <param name="lz"></param>
-        /// <returns></returns>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <returns>The Block.</returns>
         public Block GetBlock(int lx, int ly, int lz) => Blocks[(lx, ly, lz)];
         /// <summary>
-        /// 
+        /// Gets the Block by its local coordinates of the block.
         /// </summary>
-        /// <param name="lb"></param>
-        /// <returns></returns>
+        /// <param name="lb">Local coordinates of the block</param>
+        /// <returns>The Block.</returns>
         public Block GetBlock(Vector3i lb) => Blocks[lb];
         /// <summary>
-        /// 
+        /// Replaces the block.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="lx"></param>
-        /// <param name="ly"></param>
-        /// <param name="lz"></param>
-        /// <param name="light"></param>
+        /// <param name="name">Block name</param>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <param name="light">Light value</param>
         public void SetBlock(string name, int lx, int ly, int lz, ushort light = 0x0000) =>
             Blocks[(lx, ly, lz)] = new Block(name, lx, ly, lz, light);
 
         /// <summary>
-        /// 
+        /// Replaces the block.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="lb"></param>
-        /// <param name="light"></param>
+        /// <param name="name">Block name</param>
+        /// <param name="lb">Local coordinates of the block</param>
+        /// <param name="light">Light value</param>
         public void SetBlock(string name, Vector3i lb, ushort light = 0x0000) =>
             Blocks[lb] = new Block(name, lb, light);
         /// <summary>
-        /// 
+        /// Replaces the block.
         /// </summary>
-        /// <param name="newBlock"></param>
+        /// <param name="newBlock">New block</param>
         public void SetBlock(Block newBlock) => Blocks[newBlock.Position] = newBlock;
         /// <summary>
-        /// 
+        /// Converts local block coordinates to world coordinates.
         /// </summary>
-        /// <param name="lx"></param>
-        /// <param name="ly"></param>
-        /// <param name="lz"></param>
-        /// <returns></returns>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <returns>Vector of world coordinates of the block.</returns>
         public Vector3i ConvertLocalToWorld(int lx, int ly, int lz)
         {
             int wx = lx + Position.X * Size.X;
@@ -290,10 +289,10 @@ namespace VoxelWorld.World
             return (wx, ly, wz);
         }
         /// <summary>
-        /// 
+        /// Converts local block coordinates to world coordinates.
         /// </summary>
-        /// <param name="lb"></param>
-        /// <returns></returns>
+        /// <param name="lb">Local coordinates of the block</param>
+        /// <returns>Vector of world coordinates of the block.</returns>
         public Vector3i ConvertLocalToWorld(Vector3i lb)
         {
             int wx = lb.X + Position.X * Size.X;
@@ -302,28 +301,28 @@ namespace VoxelWorld.World
             return (wx, lb.Y, wz);
         }
         /// <summary>
-        /// 
+        /// Selects all faces of the block that the player can see.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <param name="currentBlock"></param>
-        private void SelectionOfFaces(int x, int y, int z, Block currentBlock)
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <param name="currentBlock">Current block</param>
+        private void SelectionOfFaces(int lx, int ly, int lz, Block currentBlock)
         {
-            IntegrateSideFaces(currentBlock, Face.Front, (x, y, z + 1), Position + ( 0,  1), (x, y, 0));
-            IntegrateSideFaces(currentBlock, Face.Back,  (x, y, z - 1), Position + ( 0, -1), (x, y, Size.Z - 1));
-            IntegrateSideFaces(currentBlock, Face.Left,  (x - 1, y, z), Position + (-1,  0), (Size.X - 1, y, z));
-            IntegrateSideFaces(currentBlock, Face.Right, (x + 1, y, z), Position + ( 1,  0), (0, y, z));
-            IntegrateTopBottomFaces(currentBlock, x, y, z);
+            IntegrateSideFaces(currentBlock, Face.Front, (lx, ly, lz + 1), Position + ( 0,  1), (lx, ly, 0));
+            IntegrateSideFaces(currentBlock, Face.Back,  (lx, ly, lz - 1), Position + ( 0, -1), (lx, ly, Size.Z - 1));
+            IntegrateSideFaces(currentBlock, Face.Left,  (lx - 1, ly, lz), Position + (-1,  0), (Size.X - 1, ly, lz));
+            IntegrateSideFaces(currentBlock, Face.Right, (lx + 1, ly, lz), Position + ( 1,  0), (0, ly, lz));
+            IntegrateTopBottomFaces(currentBlock, lx, ly, lz);
         }
         /// <summary>
-        /// 
+        /// Adds side faces to a chunk.
         /// </summary>
-        /// <param name="currentBlock"></param>
-        /// <param name="face"></param>
-        /// <param name="nextBlock"></param>
-        /// <param name="chunkOffset"></param>
-        /// <param name="borderBlock"></param>
+        /// <param name="currentBlock">Current block</param>
+        /// <param name="face">Face</param>
+        /// <param name="nextBlock">Next block</param>
+        /// <param name="chunkOffset">Coordinates of the neighboring chunk</param>
+        /// <param name="borderBlock">Coordinates of the outermost block in the chunk</param>
         private void IntegrateSideFaces(Block currentBlock, Face face, Vector3i nextBlock, Vector2i chunkOffset, Vector3i borderBlock)
         {
             if ((face is Face.Front && currentBlock.Position.Z < Size.Z - 1) ||
@@ -349,54 +348,54 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Adds a bottom and top face to a chunk.
         /// </summary>
-        /// <param name="currentBlock"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        private void IntegrateTopBottomFaces(Block currentBlock, int x, int y, int z)
+        /// <param name="currentBlock">Current block</param>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        private void IntegrateTopBottomFaces(Block currentBlock, int lx, int ly, int lz)
         {
             // top face
-            Blocks.TryGetValue((x, y + 1, z), out var block);
-            if (y < Size.Y - 1 && IsFaceIntegrable(block, currentBlock))
+            Blocks.TryGetValue((lx, ly + 1, lz), out var nextBlock);
+            if (ly < Size.Y - 1 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Top);
             }
-            else if (y >= Size.Y - 1)
+            else if (ly >= Size.Y - 1)
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Top);
             }
 
             // bottom face
-            Blocks.TryGetValue((x, y - 1, z), out block);
-            if (y > 0 && IsFaceIntegrable(block, currentBlock))
+            Blocks.TryGetValue((lx, ly - 1, lz), out nextBlock);
+            if (ly > 0 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
-            else if (y <= 0)
+            else if (ly <= 0)
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
         }
         /// <summary>
-        /// 
+        /// Checks whether the next block is transparent.
         /// </summary>
-        /// <param name="nextBlock"></param>
-        /// <param name="currentblock"></param>
-        /// <returns></returns>
-        private static bool IsFaceIntegrable(Block? nextBlock, Block currentblock)
+        /// <param name="nextBlock">Next block</param>
+        /// <param name="currentBlock">Сurrent block</param>
+        /// <returns>true if nextBlock.Type is a transparent block; otherwise, false.</returns>
+        private static bool IsFaceIntegrable(Block? nextBlock, Block currentBlock)
         {
             var type = nextBlock?.Type ?? TypeOfBlock.Air;
 
             return type is TypeOfBlock.Air || type is TypeOfBlock.Leaves ||
-                type is TypeOfBlock.Glass && currentblock.Type is not TypeOfBlock.Glass;
+                type is TypeOfBlock.Glass && currentBlock.Type is not TypeOfBlock.Glass;
         }
         /// <summary>
-        /// 
+        /// Adds a face to a chunk.
         /// </summary>
-        /// <param name="block"></param>
-        /// <param name="face"></param>
+        /// <param name="block">Block</param>
+        /// <param name="face">Face</param>
         private void IntegrateFaceIntoChunk(Block block, Face face)
         {
             Info[block.Name].Vertices.AddRange(TransformedVertices(block, face));
@@ -637,19 +636,19 @@ namespace VoxelWorld.World
             }
         }
         /// <summary>
-        /// 
+        /// Converts the coordinates of the vertices of a block face to the specified coordinates.
         /// </summary>
-        /// <param name="block"></param>
-        /// <param name="face"></param>
-        /// <returns></returns>
+        /// <param name="block">Block</param>
+        /// <param name="face">Face</param>
+        /// <returns>Coordinates of block face vertices.<Vector3> </returns>
         private static List<Vector3> TransformedVertices(Block block, Face face) =>
             GetBlockVertices(face)
                 .Select(vertex => vertex + block.Position)
                 .ToList();
         /// <summary>
-        /// 
+        /// Fills Indices with values.
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">Block name</param>
         private void AddFaceIndices(string name)
         {
             uint indexCount = Info[name].IndexCount;
@@ -660,7 +659,7 @@ namespace VoxelWorld.World
             Info[name].Indices.Add(2 + indexCount);
             Info[name].Indices.Add(3 + indexCount);
             Info[name].Indices.Add(0 + indexCount);
-            
+
             if (Info.TryGetValue(name, out var data))
             {
                 data.IndexCount += 4;

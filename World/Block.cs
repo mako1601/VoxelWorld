@@ -39,6 +39,9 @@ namespace VoxelWorld.World
         ];
 
         public string Name         { get; set; }
+        /// <summary>
+        /// Local coordinates of the block
+        /// </summary>
         public Vector3i Position   { get; set; }
         public TypeOfBlock Type    { get; private set; }
         /// <summary>

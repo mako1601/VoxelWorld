@@ -11,22 +11,25 @@ namespace VoxelWorld.Graphics
         /// 2 - blue,
         /// 3 - sun
         /// </summary>
-        int Channel { get; set; }
+        private int Channel { get; set; }
         /// <summary>
         /// X - world X,
         /// Y - world Y,
         /// Z - world Z,
         /// W - light
         /// </summary>
-        Queue<Vector4i> AddQueue { get; set; }
+        private Queue<Vector4i> AddQueue { get; set; }
         /// <summary>
         /// X - world X,
         /// Y - world Y,
         /// Z - world Z,
         /// W - light
         /// </summary>
-        Queue<Vector4i> RemoveQueue { get; set; }
-
+        private Queue<Vector4i> RemoveQueue { get; set; }
+        /// <summary>
+        /// The constructor of the class.
+        /// </summary>
+        /// <param name="channel">Channel number</param>
         public LightSolver(int channel)
         {
             Channel       = channel;
@@ -34,53 +37,53 @@ namespace VoxelWorld.Graphics
             RemoveQueue   = [];
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wb"></param>
+        /// <param name="wb">World coordinates of the block</param>
         public void Add(Vector3i wb)
         {
             Add(wb, Chunks.GetLight(wb, Channel));
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wx"></param>
-        /// <param name="wy"></param>
-        /// <param name="wz"></param>
+        /// <param name="wx">World coordinate X of the block</param>
+        /// <param name="wy">World coordinate Y of the block</param>
+        /// <param name="wz">World coordinate Z of the block</param>
         public void Add(int wx, int wy, int wz)
         {
             Add(wx, wy, wz, Chunks.GetLight(wx, wy, wz, Channel));
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wb"></param>
-        /// <param name="emission"></param>
-        public void Add(Vector3i wb, int emission)
+        /// <param name="wb">World coordinates of the block</param>
+        /// <param name="value">Light intensity value</param>
+        public void Add(Vector3i wb, int value)
         {
-            if (emission < 2) return;
+            if (value < 2) return;
 
-            AddQueue.Enqueue((wb.X, wb.Y, wb.Z, emission));
-            Chunks.GetBlock(wb).SetLight(Channel, emission);
+            AddQueue.Enqueue((wb.X, wb.Y, wb.Z, value));
+            Chunks.GetBlock(wb).SetLight(Channel, value);
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wx"></param>
-        /// <param name="wy"></param>
-        /// <param name="wz"></param>
-        /// <param name="emission"></param>
-        public void Add(int wx, int wy, int wz, int emission)
+        /// <param name="wx">World coordinate X of the block</param>
+        /// <param name="wy">World coordinate Y of the block</param>
+        /// <param name="wz">World coordinate Z of the block</param>
+        /// <param name="value">Light intensity value</param>
+        public void Add(int wx, int wy, int wz, int value)
         {
-            if (emission < 2) return;
+            if (value < 2) return;
 
-            AddQueue.Enqueue((wx, wy, wz, emission));
-            Chunks.GetBlock(wx, wy, wz).SetLight(Channel, emission);
+            AddQueue.Enqueue((wx, wy, wz, value));
+            Chunks.GetBlock(wx, wy, wz).SetLight(Channel, value);
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the remove queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wb"></param>
+        /// <param name="wb">World coordinates of the block</param>
         public void Remove(Vector3i wb)
         {
             int light = Chunks.GetLight(wb, Channel);
@@ -91,11 +94,11 @@ namespace VoxelWorld.Graphics
             Chunks.GetBlock(wb).SetLight(Channel, 0);
         }
         /// <summary>
-        /// 
+        /// Adds the light value to the remove queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wx"></param>
-        /// <param name="wy"></param>
-        /// <param name="wz"></param>
+        /// <param name="wx">World coordinate X of the block</param>
+        /// <param name="wy">World coordinate Y of the block</param>
+        /// <param name="wz">World coordinate Z of the block</param>
         public void Remove(int wx, int wy, int wz)
         {
             int light = Chunks.GetLight(wx, wy, wz, Channel);
@@ -106,7 +109,7 @@ namespace VoxelWorld.Graphics
             Chunks.GetBlock(wx, wy, wz).SetLight(Channel, 0);
         }
         /// <summary>
-        /// 
+        /// Recalculates the lights if the remove or add queue is non-empty.
         /// </summary>
         public void Solve()
         {
