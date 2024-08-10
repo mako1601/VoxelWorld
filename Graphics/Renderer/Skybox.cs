@@ -1,9 +1,9 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
-using static OpenTK.Graphics.OpenGL4.TextureTarget;
-using static OpenTK.Graphics.OpenGL4.TextureWrapMode;
-using static OpenTK.Graphics.OpenGL4.TextureMinFilter;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
+using static OpenTK.Graphics.OpenGL.TextureTarget;
+using static OpenTK.Graphics.OpenGL.TextureWrapMode;
+using static OpenTK.Graphics.OpenGL.TextureMinFilter;
 
 using StbImageSharp;
 
@@ -30,11 +30,11 @@ namespace VoxelWorld.Graphics.Renderer
 
             _texture = GenTexture();
             BindTexture(TextureCubeMap, _texture);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureMinFilter, (int)Linear);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureMagFilter, (int)Linear);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapS, (int)ClampToEdge);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapT, (int)ClampToEdge);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureMinFilter, (int)Linear);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureMagFilter, (int)Linear);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapS, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapT, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
             StbImage.stbi_set_flip_vertically_on_load(0);
 
             ImageResult texture;
@@ -53,8 +53,8 @@ namespace VoxelWorld.Graphics.Renderer
                         ColorComponents.RedGreenBlue);
                 }
 
-                TexImage2D(TextureCubeMapPositiveX + i, 0,
-                    PixelInternalFormat.Rgb, texture.Width, texture.Height,
+                TexImage2D(TextureCubeMapPositiveX + (uint)i, 0,
+                    InternalFormat.Rgb, texture.Width, texture.Height,
                     0, PixelFormat.Rgb, PixelType.UnsignedByte, texture.Data);
             }
 

@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 namespace VoxelWorld.Graphics
 {
@@ -37,35 +37,35 @@ namespace VoxelWorld.Graphics
         public void Delete() => DeleteProgram(ID);
 
         public void SetBool(string name, bool value) =>
-            Uniform1(GetUniformLocation(ID, name), value ? 1 : 0);
+            Uniform1i(GetUniformLocation(ID, name), value ? 1 : 0);
         public void SetInt(string name, int value) =>
-            Uniform1(GetUniformLocation(ID, name), value);
+            Uniform1i(GetUniformLocation(ID, name), value);
         public void SetFloat(string name, float value) =>
-            Uniform1(GetUniformLocation(ID, name), value);
+            Uniform1f(GetUniformLocation(ID, name), value);
 
         public void SetVector2(string name, Vector2 value) =>
-            Uniform2(GetUniformLocation(ID, name), value);
+            Uniform2f(GetUniformLocation(ID, name), value.X, value.Y);
         public void SetVector2(string name, float x, float y) =>
-            Uniform2(GetUniformLocation(ID, name), x, y);
+            Uniform2f(GetUniformLocation(ID, name), x, y);
 
         public void SetVector3(string name, Vector3 value) =>
-            Uniform3(GetUniformLocation(ID, name), value);
+            Uniform3f(GetUniformLocation(ID, name), value.X, value.Y, value.Z);
         public void SetVector3(string name, float x, float y, float z) =>
-            Uniform3(GetUniformLocation(ID, name), x, y, z);
+            Uniform3f(GetUniformLocation(ID, name), x, y, z);
 
         public void SetVector4(string name, Vector4 value) =>
-            Uniform4(GetUniformLocation(ID, name), value);
+            Uniform4f(GetUniformLocation(ID, name), value.X, value.Y, value.Z, value.W);
         public void SetVector4(string name, float x, float y, float z, float w) =>
-            Uniform4(GetUniformLocation(ID, name), x, y, z, w);
+            Uniform4f(GetUniformLocation(ID, name), x, y, z, w);
 
         public void SetMatrix2(string name, Matrix2 matrix) =>
-            UniformMatrix2(GetUniformLocation(ID, name), false, ref matrix);
+            UniformMatrix2f(GetUniformLocation(ID, name), 1, false, matrix);
 
         public void SetMatrix3(string name, Matrix3 matrix) =>
-            UniformMatrix3(GetUniformLocation(ID, name), false, ref matrix);
+            UniformMatrix3f(GetUniformLocation(ID, name), 1, false, matrix);
 
         public void SetMatrix4(string name, Matrix4 matrix) =>
-            UniformMatrix4(GetUniformLocation(ID, name), false, ref matrix);
+            UniformMatrix4f(GetUniformLocation(ID, name), 1, false, matrix);
 
         private static string LoadShaderSource(string filePath)
         {
@@ -87,7 +87,7 @@ namespace VoxelWorld.Graphics
         {
             if (type.Equals("PROGRAM"))
             {
-                GetProgram(shader, GetProgramParameterName.LinkStatus, out var success);
+                GetProgrami(shader, ProgramProperty.LinkStatus, out var success);
 
                 if (success == 0)
                 {
@@ -97,7 +97,7 @@ namespace VoxelWorld.Graphics
             }
             else
             {
-                GetShader(shader, ShaderParameter.CompileStatus, out var success);
+                GetShaderi(shader, ShaderParameterName.CompileStatus, out var success);
 
                 if (success == 0)
                 {

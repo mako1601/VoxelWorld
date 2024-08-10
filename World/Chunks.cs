@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.Window;
 using VoxelWorld.Entity;
@@ -68,7 +68,7 @@ namespace VoxelWorld.World
             if (Textures is null)    throw new Exception("[WARNING] Textures is null");
 
             Enable(EnableCap.CullFace);
-            CullFace(CullFaceMode.Back);
+            CullFace(TriangleFace.Back);
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 

@@ -1,9 +1,9 @@
-﻿using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
-using static OpenTK.Graphics.OpenGL4.TextureTarget;
-using static OpenTK.Graphics.OpenGL4.TextureWrapMode;
-using static OpenTK.Graphics.OpenGL4.TextureMinFilter;
-using static OpenTK.Graphics.OpenGL4.TextureParameterName;
+﻿using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
+using static OpenTK.Graphics.OpenGL.TextureTarget;
+using static OpenTK.Graphics.OpenGL.TextureWrapMode;
+using static OpenTK.Graphics.OpenGL.TextureMinFilter;
+using static OpenTK.Graphics.OpenGL.TextureParameterName;
 
 using StbImageSharp;
 
@@ -16,12 +16,12 @@ namespace VoxelWorld.Graphics
         public Texture(string filename)
         {
             ID = GenTexture();
-            BindTexture(Texture2D, ID);
-            TexParameter(Texture2D, TextureWrapS, (int)Repeat);
-            TexParameter(Texture2D, TextureWrapT, (int)Repeat);
-            TexParameter(Texture2D, TextureParameterName.TextureMinFilter, (int)NearestMipmapNearest);
-            TexParameter(Texture2D, TextureParameterName.TextureMagFilter, (int)Nearest);
-            TexParameter(Texture2D, TextureMaxLevel, 4);
+            BindTexture(Texture2d, ID);
+            TexParameterf(Texture2d, TextureWrapS, (int)Repeat);
+            TexParameterf(Texture2d, TextureWrapT, (int)Repeat);
+            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, (int)NearestMipmapNearest);
+            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)Nearest);
+            TexParameterf(Texture2d, TextureMaxLevel, 4);
             StbImage.stbi_set_flip_vertically_on_load(1);
             
             ImageResult texture;
@@ -38,15 +38,15 @@ namespace VoxelWorld.Graphics
                     ColorComponents.RedGreenBlueAlpha);
             }
 
-            TexImage2D(Texture2D, 0, PixelInternalFormat.Rgba,
+            TexImage2D(Texture2d, 0, InternalFormat.Rgba,
                 texture.Width, texture.Height, 0, PixelFormat.Rgba,
                 PixelType.UnsignedByte, texture.Data);
 
             GenerateTextureMipmap(ID);
         }
 
-        public void Bind() => BindTexture(Texture2D, ID);
-        public void Unbind() => BindTexture(Texture2D, 0);
+        public void Bind() => BindTexture(Texture2d, ID);
+        public void Unbind() => BindTexture(Texture2d, 0);
         public void Delete() => DeleteTexture(ID);
     }
 }

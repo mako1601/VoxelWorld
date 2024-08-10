@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.World;
 using VoxelWorld.Window;
@@ -38,7 +38,7 @@ namespace VoxelWorld.Graphics.Renderer
             if (block == null) return;
 
             Enable(EnableCap.CullFace);
-            CullFace(CullFaceMode.Back);
+            CullFace(TriangleFace.Back);
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 

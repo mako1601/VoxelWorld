@@ -1,6 +1,6 @@
-﻿using static OpenTK.Graphics.OpenGL4.GL;
-using static OpenTK.Graphics.OpenGL4.BufferTarget;
-using static OpenTK.Graphics.OpenGL4.BufferUsageHint;
+﻿using static OpenTK.Graphics.OpenGL.GL;
+using static OpenTK.Graphics.OpenGL.BufferUsage;
+using static OpenTK.Graphics.OpenGL.BufferTarget;
 
 namespace VoxelWorld.Graphics
 {

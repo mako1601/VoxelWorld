@@ -22,14 +22,14 @@ namespace VoxelWorld.Entity
     public class Player
     {
         /// <summary>
-        /// default: 8f (8 blocks per second)
+        /// Default value is 8.
         /// </summary>
         public float Speed { get; set; } = 8f;
         public Vector3 Position { get; set; }
         public Camera Camera { get; set; }
-        public string SelectedBlock { get; private set; } = "stone";
+        public string SelectedBlock { get; set; } = "stone";
         /// <summary>
-        /// default: 5f (5 blocks)
+        /// Default value is 5.
         /// </summary>
         public float RayDistance { get; set; } = 5f;
 
@@ -48,7 +48,6 @@ namespace VoxelWorld.Entity
 
         public void KeyboardInput(KeyboardState input, float time)
         {
-            #region Movement
             float velocity = Speed * time;
             if (input.IsKeyDown(Keys.W))
             {
@@ -74,21 +73,6 @@ namespace VoxelWorld.Entity
             {
                 Position -= Vector3.UnitY * velocity;
             }
-            #endregion
-
-            #region Block selection 1-8
-            if (input.IsKeyPressed(Keys.D1)) SelectedBlock = "stone";
-            if (input.IsKeyPressed(Keys.D2)) SelectedBlock = "dirt";
-            if (input.IsKeyPressed(Keys.D3)) SelectedBlock = "grass";
-            if (input.IsKeyPressed(Keys.D4)) SelectedBlock = "sand";
-            if (input.IsKeyPressed(Keys.D5)) SelectedBlock = "gravel";
-            if (input.IsKeyPressed(Keys.D6)) SelectedBlock = "oak_log";
-            if (input.IsKeyPressed(Keys.D7)) SelectedBlock = "oak_leaves";
-            if (input.IsKeyPressed(Keys.D8)) SelectedBlock = "glass";
-            if (input.IsKeyPressed(Keys.R))  SelectedBlock = "red_light_source";
-            if (input.IsKeyPressed(Keys.G))  SelectedBlock = "green_light_source";
-            if (input.IsKeyPressed(Keys.B))  SelectedBlock = "blue_light_source";
-            #endregion
         }
 
         public CursorState MouseInput(MouseState input, CursorState state, double time)
