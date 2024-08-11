@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.World;
-using VoxelWorld.Window;
+using VoxelWorld.Entity;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -21,7 +21,7 @@ namespace VoxelWorld.Graphics.Renderer
 
         public Outline()
         {
-            _shader = new ShaderProgram("outline.glslv", "outline.glslf");
+            _shader = new ShaderProgram("line.glslv", "line.glslf");
             _lineVAO = new VAO();
             _lineVBO = new VBO(_lineVertices);
             VAO.LinkToVAO(0, 3);
@@ -33,9 +33,9 @@ namespace VoxelWorld.Graphics.Renderer
             _blockEBO = new EBO(_blockIndices);
         }
 
-        public void Draw(Matrixes matrix, Block? block)
+        public void Draw(Player player, Block? block)
         {
-            if (block == null) return;
+            if (block is null) return;
 
             Enable(EnableCap.CullFace);
             CullFace(TriangleFace.Back);
@@ -43,16 +43,16 @@ namespace VoxelWorld.Graphics.Renderer
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             _shader.Bind();
-            _shader.SetVector4("color", new Vector4(0f, 0f, 0f, 0.5f));
+            _shader.SetVector4("color", (0f, 0f, 0f, 0.5f));
             _shader.SetMatrix4("model", Matrix4.CreateTranslation(block.Position));
-            _shader.SetMatrix4("view", matrix.View);
-            _shader.SetMatrix4("projection", matrix.Projection);
+            _shader.SetMatrix4("view", player.Camera.GetViewMatrix(player.Position));
+            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
 
             _lineVAO.Bind();
 
             DrawElements(PrimitiveType.Lines, _lineIndices.Count, DrawElementsType.UnsignedInt, 0);
 
-            _shader.SetVector4("color", new Vector4(1f, 1f, 1f, 0.04f));
+            _shader.SetVector4("color", (1f, 1f, 1f, 0.04f));
             _blockVAO.Bind();
 
             DrawElements(PrimitiveType.Triangles, _blockIndices.Count, DrawElementsType.UnsignedInt, 0);

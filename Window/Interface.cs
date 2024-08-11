@@ -96,6 +96,9 @@ namespace VoxelWorld.Window
 
         private void DrawInfo(Color3<Rgb> color, Info info)
         {
+            //ChunkBoundaries cb = new ChunkBoundaries();
+            //cb.Draw(Color3.Yellow, info.Player);
+
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 

@@ -15,51 +15,11 @@ using VoxelWorld.Graphics.Renderer;
 
 namespace VoxelWorld.Window
 {
-    public struct Parameters
-    {
-        public bool IsWhiteWorld { get; private set; }
-        public Vector3 PlayerPosition { get; private set; }
-        
-        public Parameters(bool isWhiteWorld, Player player)
-        {
-            IsWhiteWorld = isWhiteWorld;
-            PlayerPosition = player.Position;
-        }
-
-        public void Update(bool isWhiteWorld, Player player)
-        {
-            IsWhiteWorld = isWhiteWorld;
-            PlayerPosition = player.Position;
-        }
-    }
-
-    public struct Matrixes
-    {
-        public Matrix4 View { get; private set; }
-        public Matrix4 Projection { get; private set; }
-
-        public Matrixes(Player player)
-        {
-            View = player.Camera.GetViewMatrix(player.Position);
-            Projection = player.Camera.GetProjectionMatrix();
-        }
-
-        public void Update(Player player)
-        {
-            View = player.Camera.GetViewMatrix(player.Position);
-            Projection = player.Camera.GetProjectionMatrix();
-        }
-    }
-
     public class Game : GameWindow
     {
-        // temporary disfigurement
         private Chunks _chunks;
         private Outline _outline;
         private Skybox _skybox;
-
-        private Parameters _parameters;
-        private Matrixes _matrixes;
 
         private Player Player { get; }
         private Interface Interface { get; set; }
@@ -126,9 +86,6 @@ namespace VoxelWorld.Window
             _chunks = new Chunks();
             _outline = new Outline();
             Interface = new Interface(Player.SelectedBlock);
-
-            _matrixes = new Matrixes(Player);
-            _parameters = new Parameters(IsWhiteWorld, Player);
         }
 
         protected override void OnUnload()
@@ -181,12 +138,9 @@ namespace VoxelWorld.Window
 
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            _matrixes.Update(Player);
-            _parameters.Update(IsWhiteWorld, Player);
-
-            _skybox.Draw(_matrixes);
-            _chunks.Draw(_matrixes, _parameters);
-            _outline.Draw(_matrixes, Player.Camera.Ray.Block);
+            _skybox.Draw(Player);
+            _chunks.Draw(Player, IsWhiteWorld);
+            _outline.Draw(Player, Player.Camera.Ray.Block);
             Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize } );
 
             Context.SwapBuffers();

@@ -7,7 +7,7 @@ using static OpenTK.Graphics.OpenGL.TextureMinFilter;
 
 using StbImageSharp;
 
-using VoxelWorld.Window;
+using VoxelWorld.Entity;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -62,13 +62,13 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetInt("skybox", 0);
         }
 
-        public void Draw(Matrixes matrix)
+        public void Draw(Player player)
         {
             DepthFunc(DepthFunction.Lequal);
 
             _shader.Bind();
-            _shader.SetMatrix4("view", new Matrix4(new Matrix3(matrix.View)));
-            _shader.SetMatrix4("projection", matrix.Projection);
+            _shader.SetMatrix4("view", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
+            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
 
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);
