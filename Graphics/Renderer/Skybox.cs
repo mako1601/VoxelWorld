@@ -1,13 +1,13 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
-using static OpenTK.Graphics.OpenGL4.TextureTarget;
-using static OpenTK.Graphics.OpenGL4.TextureWrapMode;
-using static OpenTK.Graphics.OpenGL4.TextureMinFilter;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
+using static OpenTK.Graphics.OpenGL.TextureTarget;
+using static OpenTK.Graphics.OpenGL.TextureWrapMode;
+using static OpenTK.Graphics.OpenGL.TextureMinFilter;
 
 using StbImageSharp;
 
-using VoxelWorld.Window;
+using VoxelWorld.Entity;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -30,11 +30,11 @@ namespace VoxelWorld.Graphics.Renderer
 
             _texture = GenTexture();
             BindTexture(TextureCubeMap, _texture);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureMinFilter, (int)Linear);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureMagFilter, (int)Linear);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapS, (int)ClampToEdge);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapT, (int)ClampToEdge);
-            TexParameter(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureMinFilter, (int)Linear);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureMagFilter, (int)Linear);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapS, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapT, (int)ClampToEdge);
+            TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
             StbImage.stbi_set_flip_vertically_on_load(0);
 
             ImageResult texture;
@@ -53,8 +53,8 @@ namespace VoxelWorld.Graphics.Renderer
                         ColorComponents.RedGreenBlue);
                 }
 
-                TexImage2D(TextureCubeMapPositiveX + i, 0,
-                    PixelInternalFormat.Rgb, texture.Width, texture.Height,
+                TexImage2D(TextureCubeMapPositiveX + (uint)i, 0,
+                    InternalFormat.Rgb, texture.Width, texture.Height,
                     0, PixelFormat.Rgb, PixelType.UnsignedByte, texture.Data);
             }
 
@@ -62,13 +62,13 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetInt("skybox", 0);
         }
 
-        public void Draw(Matrixes matrix)
+        public void Draw(Player player)
         {
             DepthFunc(DepthFunction.Lequal);
 
             _shader.Bind();
-            _shader.SetMatrix4("view", new Matrix4(new Matrix3(matrix.View)));
-            _shader.SetMatrix4("projection", matrix.Projection);
+            _shader.SetMatrix4("view", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
+            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
 
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);

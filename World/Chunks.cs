@@ -1,8 +1,7 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
-using VoxelWorld.Window;
 using VoxelWorld.Entity;
 using VoxelWorld.Graphics;
 using static VoxelWorld.World.Block;
@@ -60,23 +59,23 @@ namespace VoxelWorld.World
         /// <summary>
         /// Draws all the chunks.
         /// </summary>
-        /// <param name="matrix"></param>
-        /// <param name="parameters"></param>
-        public void Draw(Matrixes matrix, Parameters parameters)
+        /// <param name="player">The Player</param>
+        /// <param name="isWhiteWorld"></param>
+        public void Draw(Player player, bool isWhiteWorld)
         {
             if (ChunksArray is null) throw new Exception("[CRITICAL] ChunksArray is null");
             if (Textures is null)    throw new Exception("[WARNING] Textures is null");
 
             Enable(EnableCap.CullFace);
-            CullFace(CullFaceMode.Back);
+            CullFace(TriangleFace.Back);
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             Shader.Bind();
-            Shader.SetBool("IsWhiteWorld", parameters.IsWhiteWorld);
-            Shader.SetVector3("viewPos", parameters.PlayerPosition);
-            Shader.SetMatrix4("view", matrix.View);
-            Shader.SetMatrix4("projection", matrix.Projection);
+            Shader.SetBool("IsWhiteWorld", isWhiteWorld);
+            Shader.SetVector3("viewPos", player.Position);
+            Shader.SetMatrix4("view", player.Camera.GetViewMatrix(player.Position));
+            Shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
 
             foreach (var chunk in ChunksArray)
             {

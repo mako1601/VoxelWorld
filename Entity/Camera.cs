@@ -114,9 +114,9 @@ namespace VoxelWorld.Entity
             float frontY = Front.Y;
             float frontZ = Front.Z;
 
-            int ix = Convert.ToInt32(MathHelper.Floor(posX));
-            int iy = Convert.ToInt32(MathHelper.Floor(posY));
-            int iz = Convert.ToInt32(MathHelper.Floor(posZ));
+            int ix = Convert.ToInt32(MathF.Floor(posX));
+            int iy = Convert.ToInt32(MathF.Floor(posY));
+            int iz = Convert.ToInt32(MathF.Floor(posZ));
 
             int stepx = frontX > 0f ? 1 : -1;
             int stepy = frontY > 0f ? 1 : -1;

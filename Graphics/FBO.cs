@@ -1,6 +1,6 @@
-﻿using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
-using static OpenTK.Graphics.OpenGL4.GL;
+﻿using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 namespace VoxelWorld.Graphics
 {
@@ -15,13 +15,13 @@ namespace VoxelWorld.Graphics
             BindFramebuffer(FramebufferTarget.Framebuffer, ID);
 
             Texture = GenTexture();
-            BindTexture(TextureTarget.Texture2D, Texture);
-            TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, textureSize.X, textureSize.Y, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
-            TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, Texture, 0);
+            BindTexture(TextureTarget.Texture2d, Texture);
+            TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgb, textureSize.X, textureSize.Y, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
+            TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2d, Texture, 0);
         
-            if (CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
+            if (CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferStatus.FramebufferComplete)
             {
                 Console.WriteLine("FBO ERROR!");
             }

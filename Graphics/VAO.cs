@@ -1,5 +1,5 @@
-﻿using static OpenTK.Graphics.OpenGL4.GL;
-using static OpenTK.Graphics.OpenGL4.VertexAttribPointerType;
+﻿using static OpenTK.Graphics.OpenGL.GL;
+using static OpenTK.Graphics.OpenGL.VertexAttribPointerType;
 
 namespace VoxelWorld.Graphics
 {
@@ -13,7 +13,7 @@ namespace VoxelWorld.Graphics
             BindVertexArray(ID);
         }
 
-        public static void LinkToVAO(int index, int size, int stride = 0, int offset = 0)
+        public static void LinkToVAO(uint index, int size, int stride = 0, int offset = 0)
         {
             VertexAttribPointer(index, size, Float, false, stride, offset);
             EnableVertexAttribArray(index);

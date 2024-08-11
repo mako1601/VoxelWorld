@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 using SharpFont;
 
@@ -27,7 +27,7 @@ namespace VoxelWorld.Graphics.Renderer
             var library = new Library();
             var face = new Face(library, "Resources/Fonts/BitmapMc.ttf");
             face.SetPixelSizes(0, height);
-            PixelStore(PixelStoreParameter.UnpackAlignment, 1);
+            PixelStoref(PixelStoreParameter.UnpackAlignment, 1);
             ActiveTexture(TextureUnit.Texture0);
 
             for (uint c = 0; c < 128; c++)
@@ -39,15 +39,15 @@ namespace VoxelWorld.Graphics.Renderer
                     FTBitmap bitmap = glyph.Bitmap;
 
                     int texture = GenTexture();
-                    BindTexture(TextureTarget.Texture2D, texture);
-                    TexImage2D(TextureTarget.Texture2D, 0,
-                        PixelInternalFormat.R8, bitmap.Width, bitmap.Rows, 0,
+                    BindTexture(TextureTarget.Texture2d, texture);
+                    TexImage2D(TextureTarget.Texture2d, 0,
+                        InternalFormat.R8, bitmap.Width, bitmap.Rows, 0,
                         PixelFormat.Red, PixelType.UnsignedByte, bitmap.Buffer);
 
-                    TextureParameter(texture, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                    TextureParameter(texture, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                    TextureParameter(texture, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                    TextureParameter(texture, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                    TextureParameterf(texture, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                    TextureParameterf(texture, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                    TextureParameterf(texture, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+                    TextureParameterf(texture, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
                     var character = new Character
                     {
@@ -64,8 +64,8 @@ namespace VoxelWorld.Graphics.Renderer
                 }
             }
 
-            BindTexture(TextureTarget.Texture2D, 0);
-            PixelStore(PixelStoreParameter.UnpackAlignment, 4);
+            BindTexture(TextureTarget.Texture2d, 0);
+            PixelStoref(PixelStoreParameter.UnpackAlignment, 4);
 
             VBO = new VBO(_vquad);
 

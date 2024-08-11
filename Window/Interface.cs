@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
-using static OpenTK.Graphics.OpenGL4.GL;
+using OpenTK.Graphics.OpenGL;
+using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.Entity;
 using VoxelWorld.Graphics.Renderer;
@@ -19,6 +19,7 @@ namespace VoxelWorld.Window
 
         private readonly Text _debugText;
         private readonly Crosshair _crosshair;
+        private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
 
         public Interface(string blockName)
@@ -28,6 +29,7 @@ namespace VoxelWorld.Window
             Crosshair = true;
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
+            _lineBatch = new LineBatch();
             _selectedBlock = new SelectedBlock(blockName);
         }
 
@@ -35,8 +37,11 @@ namespace VoxelWorld.Window
         public bool DebugInfo { get; set; }
         public bool Crosshair { get; set; }
 
-        public void Draw(Color4 color, Info info)
+        public void Draw(Color3<Rgb> color, Info info)
         {
+            _lineBatch.DrawBlockOutline(info.Player);
+            if (DebugInfo is true) _lineBatch.DrawChunkBoundaries(Color3.Yellow, info.Player);
+
             Clear(ClearBufferMask.DepthBufferBit);
 
             if (DebugInfo is true) DrawInfo(color, info);
@@ -49,6 +54,7 @@ namespace VoxelWorld.Window
         {
             _debugText.Delete();
             _crosshair.Delete();
+            _lineBatch.Delete();
            _selectedBlock.Delete();
         }
 
@@ -80,28 +86,28 @@ namespace VoxelWorld.Window
                 Matrix4 scaleM = Matrix4.CreateScale(w, h, 1f);
                 Matrix4 transRelM = Matrix4.CreateTranslation(xrel, yrel, 0.0f);
 
-                UniformMatrix4(0, false, ref transOriginM);
+                UniformMatrix4f(0, 1, false, transOriginM);
                 //UniformMatrix4(1, false, ref rotateM);
-                UniformMatrix4(1, false, ref transRelM);
-                UniformMatrix4(2, false, ref scaleM);
+                UniformMatrix4f(1, 1, false, transRelM);
+                UniformMatrix4f(2, 1, false, scaleM);
 
-                BindTexture(TextureTarget.Texture2D, ch.TextureID);
+                BindTexture(TextureTarget.Texture2d, ch.TextureID);
 
                 DrawArrays(PrimitiveType.Triangles, 0, 6);
             }
 
             BindVertexArray(0);
-            BindTexture(TextureTarget.Texture2D, 0);
+            BindTexture(TextureTarget.Texture2d, 0);
         }
 
-        private void DrawInfo(Color4 color, Info info)
+        private void DrawInfo(Color3<Rgb> color, Info info)
         {
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             _debugText.Shader.Bind();
             _debugText.Shader.SetMatrix4("projection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
-            _debugText.Shader.SetVector3("color", ((Vector4)color).Xyz);
+            _debugText.Shader.SetVector3("color", (Vector3)color);
 
             Vector3i playerPos = ((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Y), (int)MathF.Floor(info.Player.Position.Z));
 
