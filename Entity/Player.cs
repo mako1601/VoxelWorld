@@ -49,31 +49,39 @@ namespace VoxelWorld.Entity
         public void KeyboardInput(KeyboardState input, float time)
         {
             #region Movement
-            float velocity = Speed * time;
+            Vector3 direction = Vector3.Zero;
+
             if (input.IsKeyDown(Keys.W))
             {
-                Position += Vector3.Normalize(Vector3.Cross(Camera.Right, -Vector3.UnitY)) * velocity;
+                direction += Vector3.Normalize(Vector3.Cross(Camera.Right, -Vector3.UnitY));
             }
             if (input.IsKeyDown(Keys.S))
             {
-                Position -= Vector3.Normalize(Vector3.Cross(Camera.Right, -Vector3.UnitY)) * velocity;
+                direction -= Vector3.Normalize(Vector3.Cross(Camera.Right, -Vector3.UnitY));
             }
             if (input.IsKeyDown(Keys.A))
             {
-                Position -= Camera.Right * velocity;
+                direction -= Camera.Right;
             }
             if (input.IsKeyDown(Keys.D))
             {
-                Position += Camera.Right * velocity;
+                direction += Camera.Right;
             }
             if (input.IsKeyDown(Keys.Space))
             {
-                Position += Vector3.UnitY * velocity;
+                direction += Vector3.UnitY;
             }
             if (input.IsKeyDown(Keys.LeftShift))
             {
-                Position -= Vector3.UnitY * velocity;
+                direction -= Vector3.UnitY;
             }
+
+            if (direction != Vector3.Zero)
+            {
+                direction.Normalize();
+            }
+
+            Position += direction * Speed * time;
             #endregion
 
             #region Block selection 1-8
