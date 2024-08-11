@@ -18,7 +18,6 @@ namespace VoxelWorld.Window
     public class Game : GameWindow
     {
         private Chunks _chunks;
-        private Outline _outline;
         private Skybox _skybox;
 
         private Player Player { get; }
@@ -60,7 +59,7 @@ namespace VoxelWorld.Window
                     // MaximumClientSize
                     // AspectRatio
                     // IsFullscreen
-                    //NumberOfSamples = 16 // MSAA x2, x4, x8, x16
+                    NumberOfSamples = 16 // MSAA x2, x4, x8, x16
                 }
             )
         {
@@ -84,7 +83,6 @@ namespace VoxelWorld.Window
             // init
             _skybox = new Skybox();
             _chunks = new Chunks();
-            _outline = new Outline();
             Interface = new Interface(Player.SelectedBlock);
         }
 
@@ -94,7 +92,6 @@ namespace VoxelWorld.Window
 
             Interface.Delete();
             _skybox.Delete();
-            _outline.Delete();
             _chunks.Delete();
         }
 
@@ -140,7 +137,6 @@ namespace VoxelWorld.Window
 
             _skybox.Draw(Player);
             _chunks.Draw(Player, IsWhiteWorld);
-            _outline.Draw(Player, Player.Camera.Ray.Block);
             Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize } );
 
             Context.SwapBuffers();
@@ -185,7 +181,7 @@ namespace VoxelWorld.Window
                 }
             }
 
-            if (e.Key is Keys.O) IsWhiteWorld = !IsWhiteWorld;
+            if (e.Key is Keys.E) IsWhiteWorld = !IsWhiteWorld;
             if (e.Key is Keys.Q) Interface.DebugInfo = !Interface.DebugInfo;
 
             if (e.Key is Keys.D1) Player.SelectedBlock = "stone";

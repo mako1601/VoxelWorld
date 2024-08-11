@@ -19,6 +19,7 @@ namespace VoxelWorld.Window
 
         private readonly Text _debugText;
         private readonly Crosshair _crosshair;
+        private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
 
         public Interface(string blockName)
@@ -28,6 +29,7 @@ namespace VoxelWorld.Window
             Crosshair = true;
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
+            _lineBatch = new LineBatch();
             _selectedBlock = new SelectedBlock(blockName);
         }
 
@@ -37,6 +39,9 @@ namespace VoxelWorld.Window
 
         public void Draw(Color3<Rgb> color, Info info)
         {
+            _lineBatch.DrawBlockOutline(info.Player);
+            if (DebugInfo is true) _lineBatch.DrawChunkBoundaries(Color3.Yellow, info.Player);
+
             Clear(ClearBufferMask.DepthBufferBit);
 
             if (DebugInfo is true) DrawInfo(color, info);
@@ -49,6 +54,7 @@ namespace VoxelWorld.Window
         {
             _debugText.Delete();
             _crosshair.Delete();
+            _lineBatch.Delete();
            _selectedBlock.Delete();
         }
 
@@ -96,9 +102,6 @@ namespace VoxelWorld.Window
 
         private void DrawInfo(Color3<Rgb> color, Info info)
         {
-            //ChunkBoundaries cb = new ChunkBoundaries();
-            //cb.Draw(Color3.Yellow, info.Player);
-
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
