@@ -60,12 +60,12 @@ namespace VoxelWorld.Graphics.Renderer
             }
 
             _shader.Bind();
-            _shader.SetMatrix4("projection", Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90f), info.Player.Camera.AspectRatio, 1f, 3f));
-            _shader.SetMatrix4("view", info.Player.Camera.GetViewMatrix(info.Player.Position));
-            _shader.SetMatrix4("model1", Matrix4.CreateTranslation(info.Player.Position + info.Player.Camera.Front));
-            _shader.SetMatrix4("model2", info.Player.Camera.GetViewMatrix(info.Player.Position).ClearTranslation().Inverted());
-            _shader.SetMatrix4("model3", Matrix4.CreateTranslation(2f, -2.2f, -1.8f));
-            _shader.SetMatrix4("model4", Matrix4.CreateRotationY(MathHelper.DegreesToRadians(-55f)));
+            _shader.SetMatrix4("uProjection", Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90f), info.Player.Camera.AspectRatio, 1f, 3f));
+            _shader.SetMatrix4("uView", info.Player.Camera.GetViewMatrix(info.Player.Position));
+            _shader.SetMatrix4("uModel1", Matrix4.CreateTranslation(info.Player.Position + info.Player.Camera.Front));
+            _shader.SetMatrix4("uModel2", info.Player.Camera.GetViewMatrix(info.Player.Position).ClearTranslation().Inverted());
+            _shader.SetMatrix4("uModel3", Matrix4.CreateTranslation(2f, -2.2f, -1.8f));
+            _shader.SetMatrix4("uModel4", Matrix4.CreateRotationY(MathHelper.DegreesToRadians(-55f)));
 
             Chunks.Textures[_name].Bind();
 

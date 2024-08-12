@@ -50,10 +50,14 @@ namespace VoxelWorld.Graphics
 
         public void SetVector3(string name, Vector3 value) =>
             Uniform3f(GetUniformLocation(ID, name), value.X, value.Y, value.Z);
+        public void SetVector3(string name, Color3<Rgb> value) =>
+            Uniform3f(GetUniformLocation(ID, name), value.X, value.Y, value.Z);
         public void SetVector3(string name, float x, float y, float z) =>
             Uniform3f(GetUniformLocation(ID, name), x, y, z);
 
         public void SetVector4(string name, Vector4 value) =>
+            Uniform4f(GetUniformLocation(ID, name), value.X, value.Y, value.Z, value.W);
+        public void SetVector4(string name, Color4<Rgba> value) =>
             Uniform4f(GetUniformLocation(ID, name), value.X, value.Y, value.Z, value.W);
         public void SetVector4(string name, float x, float y, float z, float w) =>
             Uniform4f(GetUniformLocation(ID, name), x, y, z, w);

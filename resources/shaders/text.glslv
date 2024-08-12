@@ -5,13 +5,13 @@ layout (location = 1) in vec2 vTexCoord;
 
 out vec2 aTexCoord;
 
-layout (location = 0) uniform mat4 transOrigin;
-//layout (location = 1) uniform mat4 rotate;
-layout (location = 1) uniform mat4 transRel;
-layout (location = 2) uniform mat4 scale;
-uniform mat4 projection;
+layout (location = 0) uniform mat4 uTransOrigin;
+//layout (location = 1) uniform mat4 uRotate;
+layout (location = 2) uniform mat4 uTransRel;
+layout (location = 3) uniform mat4 uScale;
+uniform mat4 uProjection;
 
 void main() {
-    gl_Position = projection * transOrigin /*rotate*/ * transRel * scale * vec4(vPosition.xy, 0.0, 1.0);
+    gl_Position = uProjection * uTransOrigin /*uRotate*/ * uTransRel * uScale * vec4(vPosition.xy, 0.0, 1.0);
     aTexCoord = vTexCoord.xy;
 }

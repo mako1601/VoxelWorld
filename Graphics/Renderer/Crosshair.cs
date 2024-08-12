@@ -34,8 +34,8 @@ namespace VoxelWorld.Graphics.Renderer
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             _shader.Bind();
-            _shader.SetMatrix4("projection", Matrix4.CreateOrthographicOffCenter(-windowSize.X / (float)windowSize.Y, windowSize.X / (float)windowSize.Y, -1f, 1f, -1f, 1f));
-            _shader.SetMatrix4("scale", Matrix4.CreateScale(32f / windowSize.Y));
+            _shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(-windowSize.X / (float)windowSize.Y, windowSize.X / (float)windowSize.Y, -1f, 1f, -1f, 1f));
+            _shader.SetMatrix4("uScale", Matrix4.CreateScale(32f / windowSize.Y));
 
             _texture.Bind();
 

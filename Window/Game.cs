@@ -18,13 +18,16 @@ namespace VoxelWorld.Window
     public class Game : GameWindow
     {
         private Chunks _chunks;
-        private Skybox _skybox;
+        //private Skybox _skybox;
 
         private Player Player { get; }
         private Interface Interface { get; set; }
-        private uint FPS { get; set; } = 0;
-        private uint FrameCount { get; set; } = 0;
+        private Color3<Rgb> SkyLightColor { get; set; } = new(1f, 1f, 1f);
+        private Color4<Rgba> BackgroundColor { get; set; } = new(0.37f, 0.78f, 1f, 1f);
+
         private double Timer { get; set; } = 0;
+        private uint FrameCount { get; set; } = 0;
+        private uint FPS { get; set; } = 0;
         private bool IsWhiteWorld  { get; set; } = false;
         private bool IsPolygonMode { get; set; } = false;
 
@@ -81,7 +84,7 @@ namespace VoxelWorld.Window
             DepthFunc(DepthFunction.Less);
 
             // init
-            _skybox = new Skybox();
+            //_skybox = new Skybox();
             _chunks = new Chunks();
             Interface = new Interface(Player.SelectedBlock);
         }
@@ -91,7 +94,7 @@ namespace VoxelWorld.Window
             base.OnUnload();
 
             Interface.Delete();
-            _skybox.Delete();
+            //_skybox.Delete();
             _chunks.Delete();
         }
 
@@ -111,7 +114,7 @@ namespace VoxelWorld.Window
 
             FrameCount++;
             Timer += args.Time;
-            
+
             if (Timer > 1)
             {
                 FPS = FrameCount;
@@ -133,10 +136,11 @@ namespace VoxelWorld.Window
 
             if (IsFocused is false) return;
 
+            ClearColor(BackgroundColor);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            _skybox.Draw(Player);
-            _chunks.Draw(Player, IsWhiteWorld);
+            //_skybox.Draw(Player);
+            _chunks.Draw(Player, SkyLightColor, BackgroundColor.ToRgb(), IsWhiteWorld);
             Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize } );
 
             Context.SwapBuffers();

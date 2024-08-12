@@ -20,7 +20,7 @@ namespace VoxelWorld.World
 
         public Chunks()
         {
-            Shader   = new ShaderProgram("shader.glslv", "shader.glslf");
+            Shader   = new ShaderProgram("main.glslv", "main.glslf");
             Textures = [];
 
             for (int i = 1; i < Blocks.Count; i++) // i = 0 - air, but it has no texture :)
@@ -59,9 +59,11 @@ namespace VoxelWorld.World
         /// <summary>
         /// Draws all the chunks.
         /// </summary>
-        /// <param name="player">The Player</param>
+        /// <param name="player"></param>
+        /// <param name="skyLightColor"></param>
+        /// <param name="backgroundColor"></param>
         /// <param name="isWhiteWorld"></param>
-        public void Draw(Player player, bool isWhiteWorld)
+        public void Draw(Player player, Color3<Rgb> skyLightColor, Color3<Rgb> backgroundColor, bool isWhiteWorld)
         {
             if (ChunksArray is null) throw new Exception("[CRITICAL] ChunksArray is null");
             if (Textures is null)    throw new Exception("[WARNING] Textures is null");
@@ -72,14 +74,19 @@ namespace VoxelWorld.World
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             Shader.Bind();
-            Shader.SetBool("IsWhiteWorld", isWhiteWorld);
-            Shader.SetVector3("viewPos", player.Position);
-            Shader.SetMatrix4("view", player.Camera.GetViewMatrix(player.Position));
-            Shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
+            Shader.SetBool("uIsWhiteWorld", isWhiteWorld);
+            Shader.SetVector3("uViewPos", player.Position);
+            Shader.SetVector3("uFogColor", backgroundColor);
+            Shader.SetFloat("uFogFactor", 2.4f);
+            Shader.SetFloat("uFogCurve", 1.6f);
+            Shader.SetFloat("uGamma", 1.6f);
+            Shader.SetVector3("uSkyLightColor", 1.0f, 1.0f, 1.0f);
+            Shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
+            Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             foreach (var chunk in ChunksArray)
             {
-                Shader.SetMatrix4("model", Matrix4.CreateTranslation(chunk.Key.X * Chunk.Size.X, 0f, chunk.Key.Y * Chunk.Size.Z));
+                Shader.SetMatrix4("uModel", Matrix4.CreateTranslation(chunk.Key.X * Chunk.Size.X, 0f, chunk.Key.Y * Chunk.Size.Z));
                 chunk.Value.Draw(Textures);
             }
 

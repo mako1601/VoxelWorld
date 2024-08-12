@@ -42,10 +42,10 @@ namespace VoxelWorld.Graphics.Renderer
             var c = Chunks.GetChunkPosition((int)MathF.Floor(player.Position.X), (int)MathF.Floor(player.Position.Z));
 
             _shader.Bind();
-            _shader.SetVector4("color", (color.X, color.Y, color.Z, 1f));
-            _shader.SetMatrix4("model", Matrix4.CreateTranslation(c.X * Chunk.Size.X, player.Position.Y, c.Y * Chunk.Size.Z));
-            _shader.SetMatrix4("view", player.Camera.GetViewMatrix(player.Position));
-            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
+            _shader.SetVector4("uColor", (color.X, color.Y, color.Z, 1f));
+            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(c.X * Chunk.Size.X, player.Position.Y, c.Y * Chunk.Size.Z));
+            _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
+            _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _chunkVAO.Bind();
 
@@ -65,10 +65,10 @@ namespace VoxelWorld.Graphics.Renderer
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             _shader.Bind();
-            _shader.SetVector4("color", (0f, 0f, 0f, 0.5f));
-            _shader.SetMatrix4("model", Matrix4.CreateTranslation(player.Camera.Ray.Block.Position));
-            _shader.SetMatrix4("view", player.Camera.GetViewMatrix(player.Position));
-            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
+            _shader.SetVector4("uColor", (0f, 0f, 0f, 0.5f));
+            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(player.Camera.Ray.Block.Position));
+            _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
+            _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _blockVAO.Bind();
 

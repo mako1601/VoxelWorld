@@ -24,14 +24,14 @@ namespace VoxelWorld.Entity
         /// <summary>
         /// Default value is 8.
         /// </summary>
-        public float Speed { get; set; } = 8f;
+        public float Speed { get; set; } = 20f;
         public Vector3 Position { get; set; }
         public Camera Camera { get; set; }
         public string SelectedBlock { get; set; } = "stone";
         /// <summary>
         /// Default value is 5.
         /// </summary>
-        public float RayDistance { get; set; } = 5f;
+        public float RayDistance { get; set; } = 12f;
 
         private bool _isGrabbed = false;
         private bool _firstMove = true;

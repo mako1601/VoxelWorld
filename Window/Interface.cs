@@ -88,8 +88,8 @@ namespace VoxelWorld.Window
 
                 UniformMatrix4f(0, 1, false, transOriginM);
                 //UniformMatrix4(1, false, ref rotateM);
-                UniformMatrix4f(1, 1, false, transRelM);
-                UniformMatrix4f(2, 1, false, scaleM);
+                UniformMatrix4f(2, 1, false, transRelM);
+                UniformMatrix4f(3, 1, false, scaleM);
 
                 BindTexture(TextureTarget.Texture2d, ch.TextureID);
 
@@ -106,8 +106,8 @@ namespace VoxelWorld.Window
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             _debugText.Shader.Bind();
-            _debugText.Shader.SetMatrix4("projection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
-            _debugText.Shader.SetVector3("color", (Vector3)color);
+            _debugText.Shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
+            _debugText.Shader.SetVector3("uColor", (Vector3)color);
 
             Vector3i playerPos = ((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Y), (int)MathF.Floor(info.Player.Position.Z));
 

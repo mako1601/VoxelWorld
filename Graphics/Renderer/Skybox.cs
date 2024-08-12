@@ -59,7 +59,7 @@ namespace VoxelWorld.Graphics.Renderer
             }
 
             _shader.Bind();
-            _shader.SetInt("skybox", 0);
+            _shader.SetInt("uSkybox", 0);
         }
 
         public void Draw(Player player)
@@ -67,8 +67,8 @@ namespace VoxelWorld.Graphics.Renderer
             DepthFunc(DepthFunction.Lequal);
 
             _shader.Bind();
-            _shader.SetMatrix4("view", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
-            _shader.SetMatrix4("projection", player.Camera.GetProjectionMatrix());
+            _shader.SetMatrix4("uView", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
+            _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);
