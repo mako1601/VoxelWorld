@@ -15,6 +15,7 @@ namespace VoxelWorld.Window
             public Player Player { get; set; }
             public uint FPS { get; set; }
             public Vector2i WindowSize { get; set; }
+            public double Time { get; set; }
         }
 
         private readonly Text _debugText;
@@ -112,15 +113,16 @@ namespace VoxelWorld.Window
             Vector3i playerPos = ((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Y), (int)MathF.Floor(info.Player.Position.Z));
 
             DrawLine($"FPS: {info.FPS}", 5f, 20f, 0.5f);
-            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 40f, 0.5f);
-            DrawLine($"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})", 5f, 60f, 0.5f);
-            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 80f, 0.5f);
-            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 100f, 0.5f);
-            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 120f, 0.5f);
-            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 140f, 0.5f);
-            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 160f, 0.5f);
-            DrawLine($"Chunk Coords XZ: {GetChunkPosition(playerPos.Xz)}", 5f, 180f, 0.5f);
-            DrawLine($"Light RGBS: {GetBlock(playerPos)?.GetLight(0)}'{GetBlock(playerPos)?.GetLight(1)}'{GetBlock(playerPos)?.GetLight(2)}'{GetBlock(playerPos)?.GetLight(3)}'", 5f, 200f, 0.5f);
+            DrawLine($"Time spent in the world: {info.Time:0.000}", 5f, 40f, 0.5f);
+            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 60f, 0.5f);
+            DrawLine($"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})", 5f, 80f, 0.5f);
+            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 100f, 0.5f);
+            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 120f, 0.5f);
+            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 140f, 0.5f);
+            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 160f, 0.5f);
+            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 180f, 0.5f);
+            DrawLine($"Chunk Coords XZ: {GetChunkPosition(playerPos.Xz)}", 5f, 200f, 0.5f);
+            DrawLine($"Light RGBS: {GetBlock(playerPos)?.GetLight(0)}'{GetBlock(playerPos)?.GetLight(1)}'{GetBlock(playerPos)?.GetLight(2)}'{GetBlock(playerPos)?.GetLight(3)}'", 5f, 220f, 0.5f);
 
             Disable(EnableCap.Blend);
         }

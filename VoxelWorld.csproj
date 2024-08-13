@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OpenTK" Version="5.0.0-pre.11" />
     <PackageReference Include="SpaceWizards.SharpFont" Version="1.0.2" />
     <PackageReference Include="StbImageSharp" Version="2.27.14" />

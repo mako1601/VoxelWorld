@@ -60,10 +60,10 @@ namespace VoxelWorld.World
         /// Draws all the chunks.
         /// </summary>
         /// <param name="player"></param>
-        /// <param name="skyLightColor"></param>
+        /// <param name="time"></param>
         /// <param name="backgroundColor"></param>
         /// <param name="isWhiteWorld"></param>
-        public void Draw(Player player, Color3<Rgb> skyLightColor, Color3<Rgb> backgroundColor, bool isWhiteWorld)
+        public void Draw(Player player, double time, Color3<Rgb> backgroundColor, bool isWhiteWorld)
         {
             if (ChunksArray is null) throw new Exception("[CRITICAL] ChunksArray is null");
             if (Textures is null)    throw new Exception("[WARNING] Textures is null");
@@ -77,10 +77,10 @@ namespace VoxelWorld.World
             Shader.SetBool("uIsWhiteWorld", isWhiteWorld);
             Shader.SetVector3("uViewPos", player.Position);
             Shader.SetVector3("uFogColor", backgroundColor);
-            Shader.SetFloat("uFogFactor", 2.4f);
+            Shader.SetFloat("uFogFactor", 1.4f);
             Shader.SetFloat("uFogCurve", 1.6f);
             Shader.SetFloat("uGamma", 1.6f);
-            Shader.SetVector3("uSkyLightColor", 1.0f, 1.0f, 1.0f);
+            Shader.SetFloat("uTime", (float)time);
             Shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
             Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 

@@ -9,12 +9,22 @@ using static OpenTK.Graphics.OpenGL.GL;
 
 using StbImageSharp;
 
+using Newtonsoft.Json;
+
 using VoxelWorld.Entity;
 using VoxelWorld.World;
-using VoxelWorld.Graphics.Renderer;
 
 namespace VoxelWorld.Window
 {
+    public struct WindowSettings
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width  { get; set; }
+        public int Height { get; set; }
+        public WindowState WindowState { get; set; }
+    }
+
     public class Game : GameWindow
     {
         private Chunks _chunks;
@@ -22,9 +32,9 @@ namespace VoxelWorld.Window
 
         private Player Player { get; }
         private Interface Interface { get; set; }
-        private Color3<Rgb> SkyLightColor { get; set; } = new(1f, 1f, 1f);
         private Color4<Rgba> BackgroundColor { get; set; } = new(0.37f, 0.78f, 1f, 1f);
 
+        private double Time { get; set; } = 0;
         private double Timer { get; set; } = 0;
         private uint FrameCount { get; set; } = 0;
         private uint FPS { get; set; } = 0;
@@ -53,7 +63,7 @@ namespace VoxelWorld.Window
                     // CurrentMonitor
                     Title = title,
                     // StartFocused
-                    // StartVisible
+                    StartVisible = false,
                     // WindowSotate
                     WindowBorder = WindowBorder.Resizable,
                     // Location
@@ -62,7 +72,10 @@ namespace VoxelWorld.Window
                     // MaximumClientSize
                     // AspectRatio
                     // IsFullscreen
-                    NumberOfSamples = 16 // MSAA x2, x4, x8, x16
+                    NumberOfSamples = 16, // MSAA x2, x4, x8, x16
+                    // TransparentFramebuffer
+                    //Vsync = VSyncMode.On,
+                    // AutoIconify
                 }
             )
         {
@@ -72,7 +85,19 @@ namespace VoxelWorld.Window
             Player = new Player((8, 32, 8));
             Player.Camera.AspectRatio = width / (float)height;
 
-            CenterWindow((width, height));
+            if (File.Exists("window_settings.json"))
+            {
+                string json = File.ReadAllText("window_settings.json");
+                var settings = JsonConvert.DeserializeObject<WindowSettings>(json);
+
+                this.Location = (settings.X, settings.Y);
+                this.Size = (settings.Width, settings.Height);
+                this.WindowState = settings.WindowState;
+            }
+            else
+            {
+                CenterWindow((width, height));
+            }
         }
 
         protected override void OnLoad()
@@ -96,6 +121,18 @@ namespace VoxelWorld.Window
             Interface.Delete();
             //_skybox.Delete();
             _chunks.Delete();
+
+            var windowSettings = new WindowSettings
+            {
+                X = this.Location.X,
+                Y = this.Location.Y,
+                Width = this.ClientSize.X,
+                Height = this.ClientSize.Y,
+                WindowState = this.WindowState,
+            };
+
+            string json = JsonConvert.SerializeObject(windowSettings, Formatting.Indented);
+            File.WriteAllText("window_settings.json", json);
         }
 
         protected override void OnResize(ResizeEventArgs e)
@@ -113,17 +150,18 @@ namespace VoxelWorld.Window
             if (IsFocused is false) return;
 
             FrameCount++;
+            Time += args.Time;
             Timer += args.Time;
 
-            if (Timer > 1)
+            if (Timer > 0.2)
             {
-                FPS = FrameCount;
+                FPS = FrameCount * 5;
                 Process curPorcess = Process.GetCurrentProcess();
                 Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
                     + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
                 curPorcess.Dispose();
                 FrameCount = 0;
-                Timer -= 1;
+                Timer -= 0.2;
             }
 
             Player.KeyboardInput(KeyboardState, (float)args.Time);
@@ -140,8 +178,8 @@ namespace VoxelWorld.Window
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //_skybox.Draw(Player);
-            _chunks.Draw(Player, SkyLightColor, BackgroundColor.ToRgb(), IsWhiteWorld);
-            Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize } );
+            _chunks.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
+            Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
 
             Context.SwapBuffers();
         }
