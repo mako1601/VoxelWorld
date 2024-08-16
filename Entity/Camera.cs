@@ -1,4 +1,5 @@
 ﻿using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 
 using VoxelWorld.World;
 
@@ -29,6 +30,8 @@ namespace VoxelWorld.Entity
     {
         public float Sensitivity { get; set; } = 0.1f;
         public float FOV { get; set; } = 90f;
+        public bool FirstMove { get; set; } = true;
+        public Vector2 LastPosition { get; set; }
 
         public Vector3 Up    { get; set; } =  Vector3.UnitY;
         public Vector3 Front { get; set; } = -Vector3.UnitZ;
@@ -41,15 +44,18 @@ namespace VoxelWorld.Entity
 
         public Ray Ray { get; set; } = new Ray();
 
-        public Camera() { UpdateVectors(); }
+        public Camera(Vector2 cursorPosition)
+        {
+            LastPosition = cursorPosition;
+            UpdateVectors();
+        }
 
         public Matrix4 GetViewMatrix(Vector3 position) =>
             Matrix4.LookAt(position, position + Front, Up);
         public Matrix4 GetProjectionMatrix() =>
-            Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV),
-                AspectRatio, 0.001f, 1000f);
+            Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, 0.001f, 1000f);
 
-        public void UpdateVectors()
+        private void UpdateVectors()
         {
             Vector3 front;
             front.X = MathF.Cos(MathHelper.DegreesToRadians(Pitch)) * MathF.Cos(MathHelper.DegreesToRadians(Yaw));
@@ -60,6 +66,31 @@ namespace VoxelWorld.Entity
 
             Right = Vector3.Normalize(Vector3.Cross(Front, Vector3.UnitY));
             Up    = Vector3.Normalize(Vector3.Cross(Right, Front));
+        }
+
+        public void Move(CursorState cursorState, Vector2 position)
+        {
+            if (cursorState is CursorState.Grabbed)
+            {
+                if (FirstMove is true)
+                {
+                    LastPosition = position;
+                    FirstMove = false;
+                }
+                else
+                {
+                    float deltaX = position.X - LastPosition.X;
+                    float deltaY = LastPosition.Y - position.Y;
+                    LastPosition = position;
+
+                    Yaw   += deltaX * Sensitivity;
+                    Pitch += deltaY * Sensitivity;
+
+                    Pitch = Math.Clamp(Pitch, -89.999f, 89.999f);
+
+                    UpdateVectors();
+                }
+            }
         }
 
         public double PressedDestroyBlock(double lastClickTime)

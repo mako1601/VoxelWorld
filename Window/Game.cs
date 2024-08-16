@@ -23,6 +23,14 @@ namespace VoxelWorld.Window
         public int Width  { get; set; }
         public int Height { get; set; }
         public WindowState WindowState { get; set; }
+        public static WindowSettings Default => new()
+        {
+            X = 100,
+            Y = 100,
+            Width = 1280,
+            Height = 768,
+            WindowState = WindowState.Normal
+        };
     }
 
     public class Game : GameWindow
@@ -30,7 +38,7 @@ namespace VoxelWorld.Window
         private Chunks _chunks;
         //private Skybox _skybox;
 
-        private Player Player { get; }
+        private Player Player { get; set; }
         private Interface Interface { get; set; }
         private Color4<Rgba> BackgroundColor { get; set; } = new(0.37f, 0.78f, 1f, 1f);
 
@@ -40,8 +48,9 @@ namespace VoxelWorld.Window
         private uint FPS { get; set; } = 0;
         private bool IsWhiteWorld  { get; set; } = false;
         private bool IsPolygonMode { get; set; } = false;
+        private WindowState PreviousWindowState { get; set; }
 
-        public Game(int width, int height, string title = "VoxelWorld") :
+        public Game(WindowSettings settings, string title = "VoxelWorld") :
             base(
                 new GameWindowSettings
                 {
@@ -63,16 +72,15 @@ namespace VoxelWorld.Window
                     // CurrentMonitor
                     Title = title,
                     // StartFocused
-                    StartVisible = false,
-                    // WindowSotate
-                    WindowBorder = WindowBorder.Resizable,
-                    // Location
-                    // Size
+                    // StartVisible
+                    WindowState = settings.WindowState,
+                    // WindowBorder
+                    Location = (settings.X, settings.Y),
+                    ClientSize = (settings.Width, settings.Height),
                     MinimumClientSize = (480, 360),
                     // MaximumClientSize
                     // AspectRatio
-                    // IsFullscreen
-                    NumberOfSamples = 16, // MSAA x2, x4, x8, x16
+                    //NumberOfSamples = 16, // MSAA x2, x4, x8, x16
                     // TransparentFramebuffer
                     //Vsync = VSyncMode.On,
                     // AutoIconify
@@ -82,22 +90,8 @@ namespace VoxelWorld.Window
             var texture = ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/logo.png"), ColorComponents.RedGreenBlueAlpha);
             Icon = new OpenTK.Windowing.Common.Input.WindowIcon(new OpenTK.Windowing.Common.Input.Image(texture.Width, texture.Height, texture.Data));
 
-            Player = new Player((8, 32, 8));
-            Player.Camera.AspectRatio = width / (float)height;
-
-            if (File.Exists("window_settings.json"))
-            {
-                string json = File.ReadAllText("window_settings.json");
-                var settings = JsonConvert.DeserializeObject<WindowSettings>(json);
-
-                this.Location = (settings.X, settings.Y);
-                this.Size = (settings.Width, settings.Height);
-                this.WindowState = settings.WindowState;
-            }
-            else
-            {
-                CenterWindow((width, height));
-            }
+            MousePosition = (ClientSize.X / 2f, ClientSize.Y / 2f);
+            CursorState = CursorState.Grabbed;
         }
 
         protected override void OnLoad()
@@ -109,38 +103,10 @@ namespace VoxelWorld.Window
             DepthFunc(DepthFunction.Less);
 
             // init
+            Player = new Player((8, 32, 8), MousePosition);
             //_skybox = new Skybox();
             _chunks = new Chunks();
             Interface = new Interface(Player.SelectedBlock);
-        }
-
-        protected override void OnUnload()
-        {
-            base.OnUnload();
-
-            Interface.Delete();
-            //_skybox.Delete();
-            _chunks.Delete();
-
-            var windowSettings = new WindowSettings
-            {
-                X = this.Location.X,
-                Y = this.Location.Y,
-                Width = this.ClientSize.X,
-                Height = this.ClientSize.Y,
-                WindowState = this.WindowState,
-            };
-
-            string json = JsonConvert.SerializeObject(windowSettings, Formatting.Indented);
-            File.WriteAllText("window_settings.json", json);
-        }
-
-        protected override void OnResize(ResizeEventArgs e)
-        {
-            base.OnResize(e);
-
-            Viewport(0, 0, ClientSize.X, ClientSize.Y);
-            Player.Camera.AspectRatio = ClientSize.X / (float)ClientSize.Y;
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
@@ -150,7 +116,7 @@ namespace VoxelWorld.Window
             if (IsFocused is false) return;
 
             FrameCount++;
-            Time += args.Time;
+            Time  += args.Time;
             Timer += args.Time;
 
             if (Timer > 0.2)
@@ -165,7 +131,8 @@ namespace VoxelWorld.Window
             }
 
             Player.KeyboardInput(KeyboardState, (float)args.Time);
-            CursorState = Player.MouseInput(MouseState, CursorState, args.Time);
+            Player.MouseInput(MouseState, args.Time);
+            Player.Camera.Move(CursorState, MousePosition);
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -184,12 +151,36 @@ namespace VoxelWorld.Window
             Context.SwapBuffers();
         }
 
-        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        protected override void OnResize(ResizeEventArgs e)
         {
-            base.OnMouseWheel(e);
+            base.OnResize(e);
 
-            Player.MouseScroll(e.OffsetY);
+            Viewport(0, 0, ClientSize.X, ClientSize.Y);
+            Player.Camera.AspectRatio = (float)ClientSize.X / ClientSize.Y;
         }
+
+        protected override void OnUnload()
+        {
+            base.OnUnload();
+
+            Interface.Delete();
+            //_skybox.Delete();
+            _chunks.Delete();
+
+            var windowSettings = new WindowSettings
+            {
+                X = this.WindowState is WindowState.Minimized ? 0 : this.Location.X,
+                Y = this.WindowState is WindowState.Minimized ? 0 : this.Location.Y,
+                Width = this.ClientSize.X,
+                Height = this.ClientSize.Y,
+                WindowState = this.WindowState is WindowState.Minimized ? WindowState.Normal : this.WindowState,
+            };
+
+            string json = JsonConvert.SerializeObject(windowSettings, Formatting.Indented);
+            File.WriteAllText("WindowSettings.json", json);
+        }
+
+        #region Input
 
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
@@ -197,14 +188,24 @@ namespace VoxelWorld.Window
 
             if (e.Key is Keys.Escape) Close();
 
-            if (e.Key is Keys.Enter && KeyboardState.IsKeyDown(Keys.LeftAlt))
+            if (e.Key is Keys.F11 || e.Key is Keys.Enter && KeyboardState.IsKeyDown(Keys.LeftAlt))
             {
-                if (IsFullscreen is true)
+                // FIXME: MousePosition changes when changing WindowState to
+                // Fullscreen and vice versa with CursorState.Grabbed, which should not be the case.
+                // It is not critical, but it is very conspicuous and annoying.
+                // If you know how to fix it, I will be very glad.
+                if (WindowState is WindowState.Fullscreen)
                 {
-                    WindowState = WindowState.Normal;
+                    WindowState = PreviousWindowState;
+                    if (Location.X < 0 && Location.Y < 0)
+                    {
+                        Location = (0, 0);
+                        WindowState = WindowState.Maximized;
+                    }
                 }
                 else
                 {
+                    PreviousWindowState = WindowState;
                     WindowState = WindowState.Fullscreen;
                 }
             }
@@ -238,5 +239,33 @@ namespace VoxelWorld.Window
             if (e.Key is Keys.G)  Player.SelectedBlock = "green_light_source";
             if (e.Key is Keys.B)  Player.SelectedBlock = "blue_light_source";
         }
+
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (e.Button is MouseButton.Middle)
+            {
+                if (CursorState is CursorState.Grabbed)
+                {
+                    CursorState = CursorState.Normal;
+                    Player.Camera.FirstMove = true;
+                }
+                else
+                {
+                    CursorState = CursorState.Grabbed;
+                }
+            }
+        }
+
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            base.OnMouseWheel(e);
+
+            Player.Camera.FOV -= e.OffsetY * 10;
+            Player.Camera.FOV = Math.Clamp(Player.Camera.FOV, 20f, 140f);
+        }
+
+        #endregion Input
     }
 }

@@ -33,17 +33,13 @@ namespace VoxelWorld.Entity
         /// </summary>
         public float RayDistance { get; set; } = 12f;
 
-        private bool _isGrabbed = false;
-        private bool _firstMove = true;
-        private Vector2 _lastPos;
-
         private double _lastLeftClickTime  = 0d;
         private double _lastRightClickTime = 0d;
 
-        public Player(Vector3 position)
+        public Player(Vector3 playerPosition, Vector2 cursorPosition)
         {
-            Position = position;
-            Camera   = new Camera();
+            Position = playerPosition;
+            Camera   = new Camera(cursorPosition);
         }
 
         public void KeyboardInput(KeyboardState input, float time)
@@ -83,52 +79,8 @@ namespace VoxelWorld.Entity
             Position += direction * Speed * time;
         }
 
-        public CursorState MouseInput(MouseState input, CursorState state, double time)
+        public void MouseInput(MouseState input, double time)
         {
-            if (input.IsButtonPressed(MouseButton.Middle))
-            {
-                if (_isGrabbed is true)
-                {
-                    state = CursorState.Normal;
-                    _isGrabbed = false;
-                    _firstMove = true;
-                }
-                else
-                {
-                    state = CursorState.Grabbed;
-                    _isGrabbed = true;
-                }
-            }
-
-            if (_isGrabbed is true)
-            {
-                if (_firstMove is true)
-                {
-                    _lastPos   = (input.X, input.Y);
-                    _firstMove = false;
-                }
-                else
-                {
-                    float deltaX = input.X - _lastPos.X;
-                    float deltaY = _lastPos.Y - input.Y;
-                    _lastPos     = (input.X, input.Y);
-
-                    Camera.Yaw   += deltaX * Camera.Sensitivity;
-                    Camera.Pitch += deltaY * Camera.Sensitivity;
-
-                    if (Camera.Pitch > 89.999f)
-                    {
-                        Camera.Pitch = 89.999f;
-                    }
-                    if (Camera.Pitch < -89.999f)
-                    {
-                        Camera.Pitch = -89.999f;
-                    }
-
-                    Camera.UpdateVectors();
-                }
-            }
-
             Camera.RayCast(Position, RayDistance);
 
             if (input.IsButtonPressed(MouseButton.Left)) 
@@ -140,21 +92,6 @@ namespace VoxelWorld.Entity
                 _lastRightClickTime = Camera.PressedPlaceBlock(SelectedBlock, _lastRightClickTime);
             if (input.IsButtonDown(MouseButton.Right))
                 _lastRightClickTime = Camera.DownPlaceBlock(SelectedBlock, _lastRightClickTime, time);
-
-            return state;
-        }
-
-        public void MouseScroll(float offsetY)
-        {
-            Camera.FOV -= offsetY * 10;
-            if (Camera.FOV < 20f)
-            {
-                Camera.FOV = 20f;
-            }
-            if (Camera.FOV > 140f)
-            {
-                Camera.FOV = 140f;
-            }
         }
     }
 }
