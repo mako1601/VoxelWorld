@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 
 using VoxelWorld.Entity;
 using VoxelWorld.World;
+using VoxelWorld.Graphics;
 
 namespace VoxelWorld.Window
 {
@@ -37,6 +38,7 @@ namespace VoxelWorld.Window
     {
         private Chunks _chunks;
         //private Skybox _skybox;
+        private TextureManager _textureManager;
 
         private Player Player { get; set; }
         private Interface Interface { get; set; }
@@ -103,6 +105,7 @@ namespace VoxelWorld.Window
             DepthFunc(DepthFunction.Less);
 
             // init
+            _textureManager = new TextureManager();
             Player = new Player((8, 32, 8), MousePosition);
             //_skybox = new Skybox();
             _chunks = new Chunks();

@@ -12,6 +12,7 @@
     <PackageReference Include="OpenTK" Version="5.0.0-pre.11" />
     <PackageReference Include="SpaceWizards.SharpFont" Version="1.0.2" />
     <PackageReference Include="StbImageSharp" Version="2.27.14" />
+    <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
   </ItemGroup>
 
   <ItemGroup>
