@@ -2,6 +2,7 @@
 using OpenTK.Windowing.Common;
 
 using VoxelWorld.World;
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Entity
 {
@@ -50,10 +51,8 @@ namespace VoxelWorld.Entity
             UpdateVectors();
         }
 
-        public Matrix4 GetViewMatrix(Vector3 position) =>
-            Matrix4.LookAt(position, position + Front, Up);
-        public Matrix4 GetProjectionMatrix() =>
-            Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, 0.001f, 1000f);
+        public Matrix4 GetViewMatrix(Vector3 position) => Matrix4.LookAt(position, position + Front, Up);
+        public Matrix4 GetProjectionMatrix() => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, 0.001f, 1000f);
 
         private void UpdateVectors()
         {
@@ -97,7 +96,7 @@ namespace VoxelWorld.Entity
         {
             if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock("air", Ray, Movement.Destroy);
+                ChunkManager.SetBlock(0, Ray.Block.Position, Movement.Destroy);
                 return 0;
             }
 
@@ -107,28 +106,28 @@ namespace VoxelWorld.Entity
         {
             if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock("air", Ray, Movement.Destroy);
+                ChunkManager.SetBlock(0, Ray.Block.Position, Movement.Destroy);
                 return 0;
             }
 
             return lastClickTime + time;
         }
 
-        public double PressedPlaceBlock(string block, double lastClickTime)
+        public double PressedPlaceBlock(int id, double lastClickTime)
         {
             if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock(block, Ray, Movement.Place);
+                ChunkManager.SetBlock(id, Ray.Block.Position + Ray.Normal, Movement.Place);
                 return 0;
             }
 
             return lastClickTime;
         }
-        public double DownPlaceBlock(string block, double lastClickTime, double time)
+        public double DownPlaceBlock(int id, double lastClickTime, double time)
         {
             if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                Chunks.SetBlock(block, Ray, Movement.Place);
+                ChunkManager.SetBlock(id, Ray.Block.Position + Ray.Normal, Movement.Place);
                 return 0;
             }
 
@@ -173,7 +172,7 @@ namespace VoxelWorld.Entity
             float t = 0f;
             while (t <= maxLength)
             {
-                var block = Chunks.GetBlock(ix, iy, iz, true);
+                var block = ChunkManager.GetBlock(ix, iy, iz, true);
                 if (block is not null && block.Type is not Block.TypeOfBlock.Air)
                 {
                     end.X = posX + t * frontX;

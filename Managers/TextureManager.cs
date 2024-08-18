@@ -1,14 +1,16 @@
 ﻿using StbImageSharp;
 
-namespace VoxelWorld.Graphics
+namespace VoxelWorld.Managers
 {
     public class TextureManager
     {
-        public static TextureManager Instance { get; } = new();
+        private static readonly Lazy<TextureManager> _instance = new(() => new TextureManager());
+        public static TextureManager Instance => _instance.Value;
+
         public Dictionary<string, float[]> Textures { get; }
         public ImageResult Atlas { get; }
 
-        public TextureManager()
+        private TextureManager()
         {
             Textures = [];
             Atlas = GenerateTextureAtlas();

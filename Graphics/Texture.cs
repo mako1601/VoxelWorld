@@ -1,9 +1,6 @@
 ﻿using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 using static OpenTK.Graphics.OpenGL.TextureTarget;
-using static OpenTK.Graphics.OpenGL.TextureWrapMode;
-using static OpenTK.Graphics.OpenGL.TextureMinFilter;
-using static OpenTK.Graphics.OpenGL.TextureParameterName;
 
 using StbImageSharp;
 
@@ -13,19 +10,23 @@ namespace VoxelWorld.Graphics
     {
         public int ID { get; set; }
 
-        public Texture(string filename)
+        public Texture(string filename, bool mipmap = true, int mipmapLevels = 4)
         {
             ID = GenTexture();
             BindTexture(Texture2d, ID);
-            TexParameterf(Texture2d, TextureWrapS, (int)Repeat);
-            TexParameterf(Texture2d, TextureWrapT, (int)Repeat);
-            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, (int)NearestMipmapNearest);
-            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)Nearest);
-            TexParameterf(Texture2d, TextureMaxLevel, 4);
+
+            TexParameterf(Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            TexParameterf(Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
+            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+            if (mipmap)
+            {
+                TexParameterf(Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
+            }
+
             StbImage.stbi_set_flip_vertically_on_load(1);
             
             ImageResult texture;
-
             try
             {
                 texture = ImageResult.FromStream(File.OpenRead($"resources/textures/{filename}"),
@@ -38,9 +39,49 @@ namespace VoxelWorld.Graphics
                     ColorComponents.RedGreenBlueAlpha);
             }
 
-            TexImage2D(Texture2d, 0, InternalFormat.Rgba,
-                texture.Width, texture.Height, 0, PixelFormat.Rgba,
-                PixelType.UnsignedByte, texture.Data);
+            TexImage2D(
+                Texture2d,
+                0,
+                InternalFormat.Rgba,
+                texture.Width,
+                texture.Height,
+                0,
+                PixelFormat.Rgba,
+                PixelType.UnsignedByte,
+                texture.Data
+            );
+
+            GenerateTextureMipmap(ID);
+        }
+
+        public Texture(ImageResult texture, bool mipmap = true, int mipmapLevels = 4)
+        {
+            ID = GenTexture();
+            BindTexture(Texture2d, ID);
+
+            TexParameterf(Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            TexParameterf(Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
+            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+
+            if (mipmap)
+            {
+                TexParameterf(Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
+            }
+
+            StbImage.stbi_set_flip_vertically_on_load(1);
+
+            TexImage2D(
+                Texture2d,
+                0,
+                InternalFormat.Rgba,
+                texture.Width,
+                texture.Height,
+                0,
+                PixelFormat.Rgba,
+                PixelType.UnsignedByte,
+                texture.Data
+            );
 
             GenerateTextureMipmap(ID);
         }

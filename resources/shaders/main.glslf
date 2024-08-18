@@ -1,16 +1,16 @@
 #version 460 core
 
-in vec3  aTexCoord;
+in vec2  aTexCoord;
 in vec4  aColor;
 in float aDistance;
 
 out vec4 fColor;
 
-uniform bool           uIsWhiteWorld;
-uniform vec3           uFogColor;
-uniform float          uFogFactor;
-uniform float          uFogCurve;
-uniform sampler2DArray uTexture;
+uniform bool      uIsWhiteWorld;
+uniform vec3      uFogColor;
+uniform float     uFogFactor;
+uniform float     uFogCurve;
+uniform sampler2D uTexture;
 
 void main() {
     if (uIsWhiteWorld)

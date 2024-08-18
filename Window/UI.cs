@@ -3,12 +3,12 @@ using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.Entity;
+using VoxelWorld.Managers;
 using VoxelWorld.Graphics.Renderer;
-using static VoxelWorld.World.Chunks;
 
 namespace VoxelWorld.Window
 {
-    public class Interface
+    public class UI
     {
         public struct Info
         {
@@ -23,15 +23,15 @@ namespace VoxelWorld.Window
         private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
 
-        public Interface(string blockName)
+        public UI(int blockID)
         {
             FontSize = 32;
-            DebugInfo = true;
+            DebugInfo = false;
             Crosshair = true;
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
             _lineBatch = new LineBatch();
-            _selectedBlock = new SelectedBlock(blockName);
+            _selectedBlock = new SelectedBlock(blockID);
         }
 
         public uint FontSize { get; set; }
@@ -121,8 +121,8 @@ namespace VoxelWorld.Window
             DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 140f, 0.5f);
             DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 160f, 0.5f);
             DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 180f, 0.5f);
-            DrawLine($"Chunk Coords XZ: {GetChunkPosition(playerPos.Xz)}", 5f, 200f, 0.5f);
-            DrawLine($"Light RGBS: {GetBlock(playerPos)?.GetLight(0)}'{GetBlock(playerPos)?.GetLight(1)}'{GetBlock(playerPos)?.GetLight(2)}'{GetBlock(playerPos)?.GetLight(3)}'", 5f, 220f, 0.5f);
+            DrawLine($"Chunk Coords XZ: {ChunkManager.GetChunkPosition(playerPos.Xz)}", 5f, 200f, 0.5f);
+            DrawLine($"Light RGBS: {ChunkManager.GetLight(playerPos, 0)}'{ChunkManager.GetLight(playerPos, 1)}'{ChunkManager.GetLight(playerPos, 2)}'{ChunkManager.GetLight(playerPos, 3)}'", 5f, 220f, 0.5f);
 
             Disable(EnableCap.Blend);
         }

@@ -4,12 +4,13 @@ using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.World;
 using VoxelWorld.Window;
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Graphics.Renderer
 {
     public class SelectedBlock
     {
-        private string _name;
+        private int _id;
         private readonly ShaderProgram _shader;
         private readonly VAO _vao;
         private readonly VBO _vboVertices;
@@ -17,45 +18,51 @@ namespace VoxelWorld.Graphics.Renderer
         private readonly VBO _vboBrightness;
         private readonly EBO _ebo;
 
-        public SelectedBlock(string name)
+        private readonly List<Vector2> _uvs;
+
+        public SelectedBlock(int id)
         {
-            _name = name;
+            _id = id;
 
             _shader = new ShaderProgram("selected_block.glslv", "selected_block.glslf");
 
             _vao = new VAO();
+
             _vboVertices = new VBO(_vertices);
             VAO.LinkToVAO(0, 3);
-            _vboUV = new VBO(_uv);
-            VAO.LinkToVAO(1, 3);
+
+            _uvs = [];
+            _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Top));
+            _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Front));
+            _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Right));
+
+            _vboUV = new VBO(_uvs);
+            VAO.LinkToVAO(1, 2);
+
             _vboBrightness = new VBO(_brightness);
             VAO.LinkToVAO(2, 1);
 
             _ebo = new EBO(_indices);
         }
 
-        public void Draw(Interface.Info info)
+        public void Draw(UI.Info info)
         {
-            if (Chunks.Textures is null) throw new Exception("[WARNING] Textures is null");
-
             Enable(EnableCap.CullFace);
             CullFace(TriangleFace.Back);
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            if (!_name.Equals(info.Player.SelectedBlock))
+            if (_id != info.Player.SelectedBlock)
             {
-                _name = info.Player.SelectedBlock;
-                for (int face = 0, index = 0; face < _uv.Count; index++)
-                {
-                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                    _uv[face] = (_uv[face].X, _uv[face].Y, Block.GetTextureIndecies(_name)[index]); face++;
-                }
+                _id = info.Player.SelectedBlock;
+
+                _uvs.Clear();
+                _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Top));
+                _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Front));
+                _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Right));
 
                 _vboUV.Bind();
-                BufferSubData(BufferTarget.ArrayBuffer, 0, _uv.Count * Vector3.SizeInBytes, _uv.ToArray());
+                BufferSubData(BufferTarget.ArrayBuffer, 0, _uvs.Count * Vector2.SizeInBytes, _uvs.ToArray());
                 _vboUV.Unbind();
             }
 
@@ -67,8 +74,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uModel3", Matrix4.CreateTranslation(2f, -2.2f, -1.8f));
             _shader.SetMatrix4("uModel4", Matrix4.CreateRotationY(MathHelper.DegreesToRadians(-55f)));
 
-            Chunks.Textures[_name].Bind();
-
+            ChunkManager.Instance.TextureAtlas.Bind();
             _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
 
@@ -101,27 +107,10 @@ namespace VoxelWorld.Graphics.Renderer
             (0f, 1f, 1f),
 
             // right
+            (1f, 0f, 1f),
             (1f, 0f, 0f),
             (1f, 1f, 0f),
-            (1f, 1f, 1f),
-            (1f, 0f, 1f)
-        ];
-        private static readonly List<Vector3> _uv =
-        [
-            (0f, 1f, 0f),
-            (0f, 0f, 0f),
-            (1f, 0f, 0f),
-            (1f, 1f, 0f),
-
-            (0f, 0f, 0f),
-            (1f, 0f, 0f),
-            (1f, 1f, 0f),
-            (0f, 1f, 0f),
-
-            (1f, 0f, 0f),
-            (1f, 1f, 0f),
-            (0f, 1f, 0f),
-            (0f, 0f, 0f)
+            (1f, 1f, 1f)
         ];
         private static readonly List<float> _brightness =
         [

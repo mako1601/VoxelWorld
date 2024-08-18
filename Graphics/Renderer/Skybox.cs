@@ -24,21 +24,24 @@ namespace VoxelWorld.Graphics.Renderer
             _shader = new ShaderProgram("skybox.glslv", "skybox.glslf");
 
             _vao = new VAO();
+
             _vbo = new VBO(_skyboxVertices);
             VAO.LinkToVAO(0, 3);
+
             _ebo = new EBO(_skyboxIndices);
 
             _texture = GenTexture();
             BindTexture(TextureCubeMap, _texture);
+
             TexParameterf(TextureCubeMap, TextureParameterName.TextureMinFilter, (int)Linear);
             TexParameterf(TextureCubeMap, TextureParameterName.TextureMagFilter, (int)Linear);
             TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapS, (int)ClampToEdge);
             TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapT, (int)ClampToEdge);
             TexParameterf(TextureCubeMap, TextureParameterName.TextureWrapR, (int)ClampToEdge);
+
             StbImage.stbi_set_flip_vertically_on_load(0);
 
             ImageResult texture;
-
             for (int i = 0; i < _skyboxPaths.Count; i++)
             {
                 try
@@ -53,9 +56,17 @@ namespace VoxelWorld.Graphics.Renderer
                         ColorComponents.RedGreenBlue);
                 }
 
-                TexImage2D(TextureCubeMapPositiveX + (uint)i, 0,
-                    InternalFormat.Rgb, texture.Width, texture.Height,
-                    0, PixelFormat.Rgb, PixelType.UnsignedByte, texture.Data);
+                TexImage2D(
+                    TextureCubeMapPositiveX + (uint)i,
+                    0,
+                    InternalFormat.Rgb,
+                    texture.Width,
+                    texture.Height,
+                    0,
+                    PixelFormat.Rgb,
+                    PixelType.UnsignedByte,
+                    texture.Data
+                );
             }
 
             _shader.Bind();
@@ -72,7 +83,6 @@ namespace VoxelWorld.Graphics.Renderer
 
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);
-
             _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _skyboxIndices.Count, DrawElementsType.UnsignedInt, 0);
 

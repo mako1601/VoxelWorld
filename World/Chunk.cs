@@ -2,78 +2,40 @@
 using OpenTK.Graphics.OpenGL;
 
 using VoxelWorld.Graphics;
+using VoxelWorld.Managers;
 using static VoxelWorld.World.Block;
 
 namespace VoxelWorld.World
 {
     public class Chunk
     {
-        private struct Data
-        {
-            public List<Vector3> Vertices { get; set; }
-            public List<Vector3> UVs { get; set; }
-            public List<Vector4> Lights { get; set; }
-            public List<uint> Indices { get; set; }
-            public uint IndexCount { get; set; }
-
-            public VAO VAO { get; set; }
-            private VBO VertexVBO { get; set; }
-            private VBO UVVBO { get; set; }
-            private VBO LightVBO { get; set; }
-            private EBO EBO { get; set; }
-
-            public Data()
-            {
-                Vertices   = [];
-                UVs        = [];
-                Lights     = [];
-                Indices    = [];
-                IndexCount = 0;
-            }
-
-            public void InitOpenGL()
-            {
-                VAO = new VAO();
-                VertexVBO = new VBO(Vertices);
-                VAO.LinkToVAO(0, 3);
-                UVVBO = new VBO(UVs);
-                VAO.LinkToVAO(1, 3);
-                LightVBO = new VBO(Lights);
-                VAO.LinkToVAO(2, 4);
-                EBO = new EBO(Indices);
-            }
-
-            public void Clear()
-            {
-                Vertices.Clear();
-                UVs.Clear();
-                Lights.Clear();
-                Indices.Clear();
-                IndexCount = 0;
-            }
-
-            public readonly void DelOpenGL()
-            {
-                EBO.Delete();
-                VertexVBO.Delete();
-                UVVBO.Delete();
-                LightVBO.Delete();
-                VAO.Delete();
-            }
-        }
-
         public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
-        public Vector2i Position { get; }
         private Dictionary<Vector3i, Block> Blocks { get; set; }
-        private Dictionary<string, Data> Info { get; set; }
+        public Vector2i Position { get; }
+
+        private List<Vector3> _vertices;
+        private List<Vector2> _uvs;
+        private List<Vector4> _lights;
+        private List<uint> _indices;
+        private uint _indexCount;
+
+        private VAO? _vao;
+        private VBO? _vertexvbo;
+        private VBO? _uvvbo;
+        private VBO? _lightvbo;
+        private EBO? _ebo;
 
         public Chunk(Vector2i position)
         {
             Position = position;
             Blocks   = [];
-            Info     = [];
 
-            // filling Blocks
+            _vertices   = [];
+            _uvs        = [];
+            _lights     = [];
+            _indices    = [];
+            _indexCount = 0;
+
             for (int y = 0; y < Size.Y; y++)
             {
                 for (int x = 0; x < Size.X; x++)
@@ -82,90 +44,23 @@ namespace VoxelWorld.World
                     {
                         if (y > 28)
                         {
-                            Blocks[(x, y, z)] = new Block("air", x, y, z);
+                            Blocks[(x, y, z)] = new Block(0, x, y, z);
                         }
                         else if (y > 27)
                         {
-                            Blocks[(x, y, z)] = new Block("grass", x, y, z);
+                            Blocks[(x, y, z)] = new Block(3, x, y, z);
                         }
                         else if (y > 24)
                         {
-                            Blocks[(x, y, z)] = new Block("dirt", x, y, z);
+                            Blocks[(x, y, z)] = new Block(2, x, y, z);
                         }
                         else
                         {
-                            Blocks[(x, y, z)] = new Block("stone", x, y, z);
+                            Blocks[(x, y, z)] = new Block(1, x, y, z);
                         }
                     }
                 }
             }
-
-            // calculation of sunlight
-            for (int x = 0; x < Size.X; x++)
-            {
-                for (int z = 0; z < Size.Z; z++)
-                {
-                    for (int y = Size.Y - 1; y > -1; y--)
-                    {
-                        Block currentBlock = Blocks[(x, y, z)];
-
-                        if (currentBlock.IsLightPassing is false) break;
-
-                        currentBlock.SetLightS(0xF);
-                    }
-                }
-            }
-
-            // filling _data
-            for (int i = 1; i < Block.Blocks.Count; i++) // i = 0 - air, but it has no texture :)
-            {
-                Info.Add(Block.Blocks[i], new Data());
-            }
-        }
-        /// <summary>
-        /// Performs additional calculations of sunlight and light from sources.
-        /// </summary>
-        // now that the world is generated/loaded flat and without light sources, these calculations are unnecessary
-        public void CreateLightmap()
-        {
-            //for (int y = 0; y < Size.Y; y++)
-            //{
-            //    for (int x = 0; x < Size.X; x++)
-            //    {
-            //        for (int z = 0; z < Size.Z; z++)
-            //        {
-            //            if (Blocks[(x, y, z)].IsLightSource)
-            //            {
-            //              // ...
-            //            }
-            //        }
-            //    }
-            //}
-
-            //for (int x = 0; x < Size.X; x++)
-            //{
-            //    for (int z = 0; z < Size.Z; z++)
-            //    {
-            //        for (int y = Size.Y - 1; y > -1; y--)
-            //        {
-            //            Block currentBlock = Blocks[(x, y, z)];
-
-            //            if (currentBlock.IsLightPassing is false) break;
-
-            //            if (Chunks.GetLight(ConvertLocalToWorld(x, y - 1, z), 3) == 0 ||
-            //                Chunks.GetLight(ConvertLocalToWorld(x, y + 1, z), 3) == 0 ||
-            //                Chunks.GetLight(ConvertLocalToWorld(x - 1, y, z), 3) == 0 ||
-            //                Chunks.GetLight(ConvertLocalToWorld(x + 1, y, z), 3) == 0 ||
-            //                Chunks.GetLight(ConvertLocalToWorld(x, y, z - 1), 3) == 0 ||
-            //                Chunks.GetLight(ConvertLocalToWorld(x, y, z + 1), 3) == 0)
-            //            {
-            //                Chunks.SolverS.Add(ConvertLocalToWorld(x, y, z));
-            //            }
-
-            //            currentBlock.SetLightS(0xF);
-            //        }
-            //    }
-            //}
         }
         /// <summary>
         /// Creates a mesh of the chunk.
@@ -189,116 +84,51 @@ namespace VoxelWorld.World
                 }
             }
 
-            foreach (var data in Info)
-            {
-                Data newBD = data.Value;
-                newBD.InitOpenGL();
-                Info[data.Key] = newBD;
-            }
+            _vao = new VAO();
+
+            _vertexvbo = new VBO(_vertices);
+            VAO.LinkToVAO(0, 3);
+
+            _uvvbo = new VBO(_uvs);
+            VAO.LinkToVAO(1, 2);
+
+            _lightvbo = new VBO(_lights);
+            VAO.LinkToVAO(2, 4);
+
+            _ebo = new EBO(_indices);
         }
         /// <summary>
         /// Updates a mesh of the chunk.
         /// </summary>
         public void UpdateMesh()
         {
-            // clear lists in _data
-            Info = Info.ToDictionary(kvp => kvp.Key, kvp =>
-            {
-                var newBD = kvp.Value;
-                newBD.Clear();
-                return newBD;
-            });
+            _vertices.Clear();
+            _uvs.Clear();
+            _lights.Clear();
+            _indices.Clear();
+            _indexCount = 0;
 
             CreateMesh();
         }
         /// <summary>
         /// Draws the chunk.
         /// </summary>
-        /// <param name="textures">Dictionary with all textures needed to draw a chunk</param>
-        public void Draw(Dictionary<string, TextureArray> textures)
+        public void Draw()
         {
-            foreach (var data in Info)
-            {
-                textures[data.Key].Bind();
-                data.Value.VAO.Bind();
-                GL.DrawElements(PrimitiveType.Triangles, data.Value.Indices.Count, DrawElementsType.UnsignedInt, 0);
-            }
+            ChunkManager.Instance.TextureAtlas.Bind();
+            _vao?.Bind();
+            GL.DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
         }
         /// <summary>
         /// Deallocates all resources.
         /// </summary>
         public void Delete()
         {
-            Info = Info.ToDictionary(kvp => kvp.Key, kvp =>
-            {
-                var newBD = kvp.Value;
-                newBD.DelOpenGL();
-                return newBD;
-            });
-        }
-        /// <summary>
-        /// Gets the Block by its local coordinates of the block.
-        /// </summary>
-        /// <param name="lx">Local coordinate X of the block</param>
-        /// <param name="ly">Local coordinate Y of the block</param>
-        /// <param name="lz">Local coordinate Z of the block</param>
-        /// <returns>The Block.</returns>
-        public Block GetBlock(int lx, int ly, int lz) => Blocks[(lx, ly, lz)];
-        /// <summary>
-        /// Gets the Block by its local coordinates of the block.
-        /// </summary>
-        /// <param name="lb">Local coordinates of the block</param>
-        /// <returns>The Block.</returns>
-        public Block GetBlock(Vector3i lb) => Blocks[lb];
-        /// <summary>
-        /// Replaces the block.
-        /// </summary>
-        /// <param name="name">Block name</param>
-        /// <param name="lx">Local coordinate X of the block</param>
-        /// <param name="ly">Local coordinate Y of the block</param>
-        /// <param name="lz">Local coordinate Z of the block</param>
-        /// <param name="light">Light value</param>
-        public void SetBlock(string name, int lx, int ly, int lz, ushort light = 0x0000) =>
-            Blocks[(lx, ly, lz)] = new Block(name, lx, ly, lz, light);
-
-        /// <summary>
-        /// Replaces the block.
-        /// </summary>
-        /// <param name="name">Block name</param>
-        /// <param name="lb">Local coordinates of the block</param>
-        /// <param name="light">Light value</param>
-        public void SetBlock(string name, Vector3i lb, ushort light = 0x0000) =>
-            Blocks[lb] = new Block(name, lb, light);
-        /// <summary>
-        /// Replaces the block.
-        /// </summary>
-        /// <param name="newBlock">New block</param>
-        public void SetBlock(Block newBlock) => Blocks[newBlock.Position] = newBlock;
-        /// <summary>
-        /// Converts local block coordinates to world coordinates.
-        /// </summary>
-        /// <param name="lx">Local coordinate X of the block</param>
-        /// <param name="ly">Local coordinate Y of the block</param>
-        /// <param name="lz">Local coordinate Z of the block</param>
-        /// <returns>Vector of world coordinates of the block.</returns>
-        public Vector3i ConvertLocalToWorld(int lx, int ly, int lz)
-        {
-            int wx = lx + Position.X * Size.X;
-            int wz = lz + Position.Y * Size.Z;
-
-            return (wx, ly, wz);
-        }
-        /// <summary>
-        /// Converts local block coordinates to world coordinates.
-        /// </summary>
-        /// <param name="lb">Local coordinates of the block</param>
-        /// <returns>Vector of world coordinates of the block.</returns>
-        public Vector3i ConvertLocalToWorld(Vector3i lb)
-        {
-            int wx = lb.X + Position.X * Size.X;
-            int wz = lb.Z + Position.Y * Size.Z;
-
-            return (wx, lb.Y, wz);
+            _ebo?.Delete();
+            _lightvbo?.Delete();
+            _uvvbo?.Delete();
+            _vertexvbo?.Delete();
+            _vao?.Delete();
         }
         /// <summary>
         /// Selects all faces of the block that the player can see.
@@ -337,10 +167,11 @@ namespace VoxelWorld.World
             }
             else
             {
-                Chunks.ChunksArray.TryGetValue(chunkOffset, out var chunk);
+                ChunkManager.Instance.Chunks.TryGetValue(chunkOffset, out var chunk);
 
-                if (chunk is null ||
-                    !chunk.Blocks.TryGetValue(borderBlock, out var block) ||
+                if (chunk is null) return;
+
+                if (!chunk.Blocks.TryGetValue(borderBlock, out var block) ||
                     IsFaceIntegrable(block, currentBlock))
                 {
                     IntegrateFaceIntoChunk(currentBlock, face);
@@ -373,7 +204,7 @@ namespace VoxelWorld.World
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
-            else if (ly <= 0)
+            else if (ly < 0) // NOTE: if you need to render the bottom face of the chunk, replace < with the <=
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
             }
@@ -383,7 +214,7 @@ namespace VoxelWorld.World
         /// </summary>
         /// <param name="nextBlock">Next block</param>
         /// <param name="currentBlock">Сurrent block</param>
-        /// <returns>true if nextBlock.Type is a transparent block; otherwise, false.</returns>
+        /// <returns>Returns true if nextBlock.Type is a transparent block; otherwise, false.</returns>
         private static bool IsFaceIntegrable(Block? nextBlock, Block currentBlock)
         {
             var type = nextBlock?.Type ?? TypeOfBlock.Air;
@@ -398,15 +229,8 @@ namespace VoxelWorld.World
         /// <param name="face">Face</param>
         private void IntegrateFaceIntoChunk(Block block, Face face)
         {
-            Info[block.Name].Vertices.AddRange(TransformedVertices(block, face));
-
-            List<Vector2> uv = GetBlockUV(face);
-            List<Vector3> UVsAndTexId = [];
-            for (int i = 0; i < uv.Count; i++)
-            {
-                UVsAndTexId.Add(new Vector3(uv[i].X, uv[i].Y, GetTextureIndecies(block.Name)[(int)face]));
-            }
-            Info[block.Name].UVs.AddRange(UVsAndTexId);
+            _vertices.AddRange(TransformedVertices(block.Position, face));
+            _uvs.AddRange(GetBlockUV(block.ID, face));
 
             var wb = ConvertLocalToWorld(block.Position);
 
@@ -421,250 +245,288 @@ namespace VoxelWorld.World
                 case Face.Front:
                     brightness = 0.9f;
 
-                    lr = Chunks.GetLight(wb.X, wb.Y, wb.Z + 1, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X, wb.Y, wb.Z + 1, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X, wb.Y, wb.Z + 1, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X, wb.Y, wb.Z + 1, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X, wb.Y, wb.Z + 1, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X, wb.Y, wb.Z + 1, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X, wb.Y, wb.Z + 1, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X, wb.Y, wb.Z + 1, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr1, lg1, lb1, ls1));
+                    _lights.Add((lr2, lg2, lb2, ls2));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
 
                 case Face.Back:
                     brightness = 0.8f;
 
-                    lr = Chunks.GetLight(wb.X, wb.Y, wb.Z - 1, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X, wb.Y, wb.Z - 1, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X, wb.Y, wb.Z - 1, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X, wb.Y, wb.Z - 1, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X, wb.Y, wb.Z - 1, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X, wb.Y, wb.Z - 1, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X, wb.Y, wb.Z - 1, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X, wb.Y, wb.Z - 1, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr1, lg1, lb1, ls1));
+                    _lights.Add((lr2, lg2, lb2, ls2));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
 
                 case Face.Right:
                     brightness = 0.95f;
 
-                    lr = Chunks.GetLight(wb.X + 1, wb.Y, wb.Z, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X + 1, wb.Y, wb.Z, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X + 1, wb.Y, wb.Z, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X + 1, wb.Y, wb.Z, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr1, lg1, lb1, ls1));
+                    _lights.Add((lr2, lg2, lb2, ls2));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
 
                 case Face.Left:
                     brightness = 0.85f;
 
-                    lr = Chunks.GetLight(wb.X - 1, wb.Y, wb.Z, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X - 1, wb.Y, wb.Z, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X - 1, wb.Y, wb.Z, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X - 1, wb.Y, wb.Z, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr1, lg1, lb1, ls1));
+                    _lights.Add((lr2, lg2, lb2, ls2));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
 
                 case Face.Top:
                     brightness = 1f;
 
-                    lr = Chunks.GetLight(wb.X, wb.Y + 1, wb.Z, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X, wb.Y + 1, wb.Z, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X, wb.Y + 1, wb.Z, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X, wb.Y + 1, wb.Z, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3) + Chunks.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3) + Chunks.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z + 1, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y + 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X, wb.Y + 1, wb.Z - 1, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr1, lg1, lb1, ls1));
+                    _lights.Add((lr2, lg2, lb2, ls2));
+                    _lights.Add((lr3, lg3, lb3, ls3));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
 
                 case Face.Bottom:
                     brightness = 0.75f;
 
-                    lr = Chunks.GetLight(wb.X, wb.Y - 1, wb.Z, 0) / 15f;
-                    lg = Chunks.GetLight(wb.X, wb.Y - 1, wb.Z, 1) / 15f;
-                    lb = Chunks.GetLight(wb.X, wb.Y - 1, wb.Z, 2) / 15f;
-                    ls = Chunks.GetLight(wb.X, wb.Y - 1, wb.Z, 3) / 15f;
+                    lr = ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z, 0) / 15f;
+                    lg = ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z, 1) / 15f;
+                    lb = ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z, 2) / 15f;
+                    ls = ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z, 3) / 15f;
 
-                    lr0 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0));
-                    lr1 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0));
-                    lr2 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0));
-                    lr3 = brightness / 75f * (30f * lr + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0));
+                    lr0 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0));
+                    lr1 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0));
+                    lr2 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 0) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 0));
+                    lr3 = brightness / 75f * (30f * lr + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 0) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 0) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 0));
 
-                    lg0 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1));
-                    lg1 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1));
-                    lg2 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1));
-                    lg3 = brightness / 75f * (30f * lg + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1));
+                    lg0 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1));
+                    lg1 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1));
+                    lg2 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 1) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 1));
+                    lg3 = brightness / 75f * (30f * lg + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 1) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 1) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 1));
 
-                    lb0 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2));
-                    lb1 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2));
-                    lb2 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2));
-                    lb3 = brightness / 75f * (30f * lb + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2));
+                    lb0 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2));
+                    lb1 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2));
+                    lb2 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 2) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 2));
+                    lb3 = brightness / 75f * (30f * lb + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 2) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 2) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 2));
 
-                    ls0 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3));
-                    ls1 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3));
-                    ls2 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + Chunks.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3));
-                    ls3 = brightness / 75f * (30f * ls + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + Chunks.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3) + Chunks.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3));
+                    ls0 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3));
+                    ls1 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3));
+                    ls2 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z + 1, 3) + ChunkManager.GetLight(wb.X - 1, wb.Y - 1, wb.Z, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z + 1, 3));
+                    ls3 = brightness / 75f * (30f * ls + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z - 1, 3) + ChunkManager.GetLight(wb.X + 1, wb.Y - 1, wb.Z, 3) + ChunkManager.GetLight(wb.X, wb.Y - 1, wb.Z - 1, 3));
 
-                    Info[block.Name].Lights.Add((lr0, lg0, lb0, ls0));
-                    Info[block.Name].Lights.Add((lr3, lg3, lb3, ls3));
-                    Info[block.Name].Lights.Add((lr1, lg1, lb1, ls1));
-                    Info[block.Name].Lights.Add((lr2, lg2, lb2, ls2));
+                    _lights.Add((lr2, lg2, lb2, ls2));
+                    _lights.Add((lr0, lg0, lb0, ls0));
+                    _lights.Add((lr3, lg3, lb3, ls3));
+                    _lights.Add((lr1, lg1, lb1, ls1));
 
-                    AddFaceIndices(block.Name);
+                    AddFaceIndices();
                     break;
             }
         }
         /// <summary>
         /// Converts the coordinates of the vertices of a block face to the specified coordinates.
         /// </summary>
-        /// <param name="block">Block</param>
-        /// <param name="face">Face</param>
+        /// <param name="position">Block position</param>
+        /// <param name="face">Block face</param>
         /// <returns>Coordinates of block face vertices.<Vector3> </returns>
-        private static List<Vector3> TransformedVertices(Block block, Face face) =>
+        private static List<Vector3> TransformedVertices(Vector3i position, Face face) =>
             GetBlockVertices(face)
-                .Select(vertex => vertex + block.Position)
+                .Select(vertex => vertex + position)
                 .ToList();
         /// <summary>
         /// Fills Indices with values.
         /// </summary>
-        /// <param name="name">Block name</param>
-        private void AddFaceIndices(string name)
+        private void AddFaceIndices()
         {
-            uint indexCount = Info[name].IndexCount;
+            _indices.Add(0 + _indexCount);
+            _indices.Add(1 + _indexCount);
+            _indices.Add(2 + _indexCount);
+            _indices.Add(2 + _indexCount);
+            _indices.Add(3 + _indexCount);
+            _indices.Add(0 + _indexCount);
 
-            Info[name].Indices.Add(0 + indexCount);
-            Info[name].Indices.Add(1 + indexCount);
-            Info[name].Indices.Add(2 + indexCount);
-            Info[name].Indices.Add(2 + indexCount);
-            Info[name].Indices.Add(3 + indexCount);
-            Info[name].Indices.Add(0 + indexCount);
-
-            if (Info.TryGetValue(name, out var data))
-            {
-                data.IndexCount += 4;
-                Info[name] = data;
-            } 
+            _indexCount += 4;
         }
+        /// <summary>
+        /// Gets the Block by its local coordinates of the block.
+        /// </summary>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <returns>The Block.</returns>
+        public Block GetBlock(int lx, int ly, int lz) => Blocks[(lx, ly, lz)];
+        /// <summary>
+        /// Gets the Block by its local coordinates of the block.
+        /// </summary>
+        /// <param name="lb">Local coordinates of the block</param>
+        /// <returns>The Block.</returns>
+        public Block GetBlock(Vector3i lb) => Blocks[lb];
+        /// <summary>
+        /// Replaces the block.
+        /// </summary>
+        /// <param name="id">Block id</param>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        public void SetBlock(int id, int lx, int ly, int lz) => Blocks[(lx, ly, lz)] = new Block(id, lx, ly, lz);
+
+        /// <summary>
+        /// Replaces the block.
+        /// </summary>
+        /// <param name="id">Block id</param>
+        /// <param name="lb">Local coordinates of the block</param>
+        public void SetBlock(int id, Vector3i lb) => Blocks[lb] = new Block(id, lb);
+        /// <summary>
+        /// Converts local block coordinates to world coordinates.
+        /// </summary>
+        /// <param name="lx">Local coordinate X of the block</param>
+        /// <param name="ly">Local coordinate Y of the block</param>
+        /// <param name="lz">Local coordinate Z of the block</param>
+        /// <returns>Vector of world coordinates of the block.</returns>
+        public Vector3i ConvertLocalToWorld(int lx, int ly, int lz) =>
+            (lx + Position.X * Size.X, ly, lz + Position.Y * Size.Z);
+        /// <summary>
+        /// Converts local block coordinates to world coordinates.
+        /// </summary>
+        /// <param name="lb">Local coordinates of the block</param>
+        /// <returns>Vector of world coordinates of the block.</returns>
+        public Vector3i ConvertLocalToWorld(Vector3i lb) =>
+            (lb.X + Position.X * Size.X, lb.Y, lb.Z + Position.Y * Size.Z);
     }
 }

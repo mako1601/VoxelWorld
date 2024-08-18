@@ -1,19 +1,12 @@
-﻿using System.Diagnostics;
-
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using static OpenTK.Graphics.OpenGL.GL;
 
-using StbImageSharp;
-
-using Newtonsoft.Json;
-
 using VoxelWorld.Entity;
-using VoxelWorld.World;
-using VoxelWorld.Graphics;
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Window
 {
@@ -36,12 +29,12 @@ namespace VoxelWorld.Window
 
     public class Game : GameWindow
     {
-        private Chunks _chunks;
+        TextureManager _textureManager;
+        ChunkManager _chunks;
         //private Skybox _skybox;
-        private TextureManager _textureManager;
 
         private Player Player { get; set; }
-        private Interface Interface { get; set; }
+        private UI Interface { get; set; }
         private Color4<Rgba> BackgroundColor { get; set; } = new(0.37f, 0.78f, 1f, 1f);
 
         private double Time { get; set; } = 0;
@@ -89,7 +82,7 @@ namespace VoxelWorld.Window
                 }
             )
         {
-            var texture = ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/logo.png"), ColorComponents.RedGreenBlueAlpha);
+            var texture = StbImageSharp.ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/logo.png"), StbImageSharp.ColorComponents.RedGreenBlueAlpha);
             Icon = new OpenTK.Windowing.Common.Input.WindowIcon(new OpenTK.Windowing.Common.Input.Image(texture.Width, texture.Height, texture.Data));
 
             MousePosition = (ClientSize.X / 2f, ClientSize.Y / 2f);
@@ -105,11 +98,12 @@ namespace VoxelWorld.Window
             DepthFunc(DepthFunction.Less);
 
             // init
-            _textureManager = new TextureManager();
-            Player = new Player((8, 32, 8), MousePosition);
+            _textureManager = TextureManager.Instance;
             //_skybox = new Skybox();
-            _chunks = new Chunks();
-            Interface = new Interface(Player.SelectedBlock);
+            _chunks = ChunkManager.Instance;
+            _chunks.Create();
+            Player = new Player((8, 32, 8), MousePosition);
+            Interface = new UI(Player.SelectedBlock);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
@@ -125,7 +119,7 @@ namespace VoxelWorld.Window
             if (Timer > 0.2)
             {
                 FPS = FrameCount * 5;
-                Process curPorcess = Process.GetCurrentProcess();
+                System.Diagnostics.Process curPorcess = System.Diagnostics.Process.GetCurrentProcess();
                 Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
                     + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
                 curPorcess.Dispose();
@@ -149,7 +143,7 @@ namespace VoxelWorld.Window
 
             //_skybox.Draw(Player);
             _chunks.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
-            Interface.Draw(Color3.Yellow, new Interface.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
+            Interface.Draw(Color3.Yellow, new UI.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
 
             Context.SwapBuffers();
         }
@@ -179,8 +173,7 @@ namespace VoxelWorld.Window
                 WindowState = this.WindowState is WindowState.Minimized ? WindowState.Normal : this.WindowState,
             };
 
-            string json = JsonConvert.SerializeObject(windowSettings, Formatting.Indented);
-            File.WriteAllText("WindowSettings.json", json);
+            File.WriteAllText("WindowSettings.json", Newtonsoft.Json.JsonConvert.SerializeObject(windowSettings, Newtonsoft.Json.Formatting.Indented));
         }
 
         #region Input
@@ -217,30 +210,31 @@ namespace VoxelWorld.Window
             {
                 if (IsPolygonMode is true)
                 {
-                    PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Line);
+                    PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Fill);
                     IsPolygonMode = false;
                 }
                 else
                 {
-                    PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Fill);
+                    PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Line);
                     IsPolygonMode = true;
                 }
             }
 
             if (e.Key is Keys.E) IsWhiteWorld = !IsWhiteWorld;
-            if (e.Key is Keys.Q) Interface.DebugInfo = !Interface.DebugInfo;
+            if (e.Key is Keys.F3) Interface.DebugInfo = !Interface.DebugInfo;
 
-            if (e.Key is Keys.D1) Player.SelectedBlock = "stone";
-            if (e.Key is Keys.D2) Player.SelectedBlock = "dirt";
-            if (e.Key is Keys.D3) Player.SelectedBlock = "grass";
-            if (e.Key is Keys.D4) Player.SelectedBlock = "sand";
-            if (e.Key is Keys.D5) Player.SelectedBlock = "gravel";
-            if (e.Key is Keys.D6) Player.SelectedBlock = "oak_log";
-            if (e.Key is Keys.D7) Player.SelectedBlock = "oak_leaves";
-            if (e.Key is Keys.D8) Player.SelectedBlock = "glass";
-            if (e.Key is Keys.R)  Player.SelectedBlock = "red_light_source";
-            if (e.Key is Keys.G)  Player.SelectedBlock = "green_light_source";
-            if (e.Key is Keys.B)  Player.SelectedBlock = "blue_light_source";
+            if (e.Key is Keys.D1) Player.SelectedBlock = 1;
+            if (e.Key is Keys.D2) Player.SelectedBlock = 2;
+            if (e.Key is Keys.D3) Player.SelectedBlock = 3;
+            if (e.Key is Keys.D4) Player.SelectedBlock = 4;
+            if (e.Key is Keys.D5) Player.SelectedBlock = 5;
+            if (e.Key is Keys.D6) Player.SelectedBlock = 6;
+            if (e.Key is Keys.D7) Player.SelectedBlock = 7;
+            if (e.Key is Keys.D8) Player.SelectedBlock = 8;
+            if (e.Key is Keys.R)  Player.SelectedBlock = 9;
+            if (e.Key is Keys.G)  Player.SelectedBlock = 10;
+            if (e.Key is Keys.B)  Player.SelectedBlock = 11;
+            if (e.Key is Keys.Q)  Player.SelectedBlock = 12;
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)

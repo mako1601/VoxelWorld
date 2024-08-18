@@ -1,10 +1,8 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace VoxelWorld.Entity
 {
-    // for the future
     public enum Movement
     {
         Nothing = 0,
@@ -27,7 +25,10 @@ namespace VoxelWorld.Entity
         public float Speed { get; set; } = 20f;
         public Vector3 Position { get; set; }
         public Camera Camera { get; set; }
-        public string SelectedBlock { get; set; } = "stone";
+        /// <summary>
+        /// Default value is 1 (stone block).
+        /// </summary>
+        public int SelectedBlock { get; set; } = 1;
         /// <summary>
         /// Default value is 5.
         /// </summary>
