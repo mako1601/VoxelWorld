@@ -31,7 +31,6 @@ void main() {
 
     aColor = vec4(pow(vLight.rgb, vec3(uGamma)), 1.0);
     aColor.rgb = max(aColor.rgb, skyLightColor * vLight.a);
-    //aColor = vec4(1.0);
 
     vec3 pos3D = (uModel * vec4(vPosition, 1.0)).xyz - uViewPos.xyz;
     aDistance = length(uView * uModel * vec4(pos3D.x, 0.1 * pos3D.y, pos3D.z, 0.0));

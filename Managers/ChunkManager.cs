@@ -27,7 +27,7 @@ namespace VoxelWorld.Managers
         /// <summary>
         /// Default value is 12.
         /// </summary>
-        public static byte RenderDistance { get; set; } = 4;
+        public static byte RenderDistance { get; set; } = 12;
 
         private ChunkManager()
         {
@@ -249,7 +249,7 @@ namespace VoxelWorld.Managers
             var c = GetChunkPosition(wb.Xz); // c - chunk coordinates
             if (Instance.Chunks.TryGetValue(c, out var chunk))
             {
-                return chunk.GetBlock(ConvertWorldToLocal(wb, c));
+                return chunk[ConvertWorldToLocal(wb, c)];
             }
             else
             {
@@ -273,11 +273,11 @@ namespace VoxelWorld.Managers
             {
                 if (isRayCast is true)
                 {
-                    return new Block(chunk.GetBlock(ConvertWorldToLocal(wx, wy, wz, c)).ID, wx, wy, wz);
+                    return new Block(chunk[ConvertWorldToLocal(wx, wy, wz, c)].ID, wx, wy, wz);
                 }
                 else
                 {
-                    return chunk.GetBlock(ConvertWorldToLocal(wx, wy, wz, c));
+                    return chunk[ConvertWorldToLocal(wx, wy, wz, c)];
                 }
             }
             else
@@ -310,7 +310,7 @@ namespace VoxelWorld.Managers
                 lb = ConvertWorldToLocal(wb, c);
             }
 
-            Instance.Chunks[c].SetBlock(id, lb);
+            Instance.Chunks[c][lb] = new Block(id, lb);
             UpdateLight(GetBlock(wb)!, wb);
             Instance.Chunks[c].UpdateMesh();
             UpdateNearestChunks(c);

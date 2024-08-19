@@ -24,8 +24,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="resources\data\blocks.json" />
-  </ItemGroup>
-
 </Project>

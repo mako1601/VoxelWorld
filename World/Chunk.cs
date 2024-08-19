@@ -10,8 +10,32 @@ namespace VoxelWorld.World
     public class Chunk
     {
         public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
-        private Dictionary<Vector3i, Block> Blocks { get; set; }
+        private Block[] Blocks { get; set; }
         public Vector2i Position { get; }
+
+        public Block this[Vector3i position]
+        {
+            get
+            {
+                return Blocks[GetIndex(position)];
+            }
+            set
+            {
+                Blocks[GetIndex(position)] = value;
+            }
+        }
+
+        public Block this[int x, int y, int z]
+        {
+            get
+            {
+                return Blocks[GetIndex(x, y, z)];
+            }
+            set
+            {
+                Blocks[GetIndex(x, y, z)] = value;
+            }
+        }
 
         private List<Vector3> _vertices;
         private List<Vector2> _uvs;
@@ -28,7 +52,7 @@ namespace VoxelWorld.World
         public Chunk(Vector2i position)
         {
             Position = position;
-            Blocks   = [];
+            Blocks   = new Block[Size.X * Size.Y * Size.Z];
 
             _vertices   = [];
             _uvs        = [];
@@ -44,19 +68,19 @@ namespace VoxelWorld.World
                     {
                         if (y > 28)
                         {
-                            Blocks[(x, y, z)] = new Block(0, x, y, z);
+                            this[x, y, z] = new Block(0, x, y, z);
                         }
                         else if (y > 27)
                         {
-                            Blocks[(x, y, z)] = new Block(3, x, y, z);
+                            this[x, y, z] = new Block(3, x, y, z);
                         }
                         else if (y > 24)
                         {
-                            Blocks[(x, y, z)] = new Block(2, x, y, z);
+                            this[x, y, z] = new Block(2, x, y, z);
                         }
                         else
                         {
-                            Blocks[(x, y, z)] = new Block(1, x, y, z);
+                            this[x, y, z] = new Block(1, x, y, z);
                         }
                     }
                 }
@@ -74,7 +98,7 @@ namespace VoxelWorld.World
                 {
                     for (int z = 0; z < Size.Z; z++)
                     {
-                        Block currentBlock = Blocks[(x, y, z)];
+                        Block currentBlock = Blocks[GetIndex(x, y, z)];
 
                         if (currentBlock.Type is not TypeOfBlock.Air)
                         {
@@ -160,7 +184,7 @@ namespace VoxelWorld.World
                 (face is Face.Left  && currentBlock.Position.X > 0) ||
                 (face is Face.Right && currentBlock.Position.X < Size.X - 1))
             {
-                if (Blocks.TryGetValue(nextBlock, out var block) && IsFaceIntegrable(block, currentBlock))
+                if (TryGetBlock(nextBlock, out var block) && IsFaceIntegrable(block, currentBlock))
                 {
                     IntegrateFaceIntoChunk(currentBlock, face);
                 }
@@ -171,7 +195,7 @@ namespace VoxelWorld.World
 
                 if (chunk is null) return;
 
-                if (!chunk.Blocks.TryGetValue(borderBlock, out var block) ||
+                if (!chunk.TryGetBlock(borderBlock, out var block) ||
                     IsFaceIntegrable(block, currentBlock))
                 {
                     IntegrateFaceIntoChunk(currentBlock, face);
@@ -180,7 +204,7 @@ namespace VoxelWorld.World
         }
         /// <summary>
         /// Adds a bottom and top face to a chunk.
-        /// </summary>
+        /// </summary>  
         /// <param name="currentBlock">Current block</param>
         /// <param name="lx">Local coordinate X of the block</param>
         /// <param name="ly">Local coordinate Y of the block</param>
@@ -188,7 +212,7 @@ namespace VoxelWorld.World
         private void IntegrateTopBottomFaces(Block currentBlock, int lx, int ly, int lz)
         {
             // top face
-            Blocks.TryGetValue((lx, ly + 1, lz), out var nextBlock);
+            TryGetBlock((lx, ly + 1, lz), out var nextBlock);
             if (ly < Size.Y - 1 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Top);
@@ -199,7 +223,7 @@ namespace VoxelWorld.World
             }
 
             // bottom face
-            Blocks.TryGetValue((lx, ly - 1, lz), out nextBlock);
+            TryGetBlock((lx, ly - 1, lz), out nextBlock);
             if (ly > 0 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
@@ -483,35 +507,35 @@ namespace VoxelWorld.World
 
             _indexCount += 4;
         }
+        private bool TryGetBlock(Vector3i position, out Block? block)
+        {
+            if (position.X >= 0 && position.X < Size.X &&
+                position.Y >= 0 && position.Y < Size.Y &&
+                position.Z >= 0 && position.Z < Size.Z)
+            {
+                block = this[position];
+                return true;
+            }
+            else
+            {
+                block = null;
+                return false;
+            }
+        }
         /// <summary>
-        /// Gets the Block by its local coordinates of the block.
+        /// 
         /// </summary>
-        /// <param name="lx">Local coordinate X of the block</param>
-        /// <param name="ly">Local coordinate Y of the block</param>
-        /// <param name="lz">Local coordinate Z of the block</param>
-        /// <returns>The Block.</returns>
-        public Block GetBlock(int lx, int ly, int lz) => Blocks[(lx, ly, lz)];
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <returns></returns>
+        public static int GetIndex(int x, int y, int z) => x + (y * Size.X) + (z * Size.X * Size.Y);
         /// <summary>
-        /// Gets the Block by its local coordinates of the block.
+        /// 
         /// </summary>
-        /// <param name="lb">Local coordinates of the block</param>
-        /// <returns>The Block.</returns>
-        public Block GetBlock(Vector3i lb) => Blocks[lb];
-        /// <summary>
-        /// Replaces the block.
-        /// </summary>
-        /// <param name="id">Block id</param>
-        /// <param name="lx">Local coordinate X of the block</param>
-        /// <param name="ly">Local coordinate Y of the block</param>
-        /// <param name="lz">Local coordinate Z of the block</param>
-        public void SetBlock(int id, int lx, int ly, int lz) => Blocks[(lx, ly, lz)] = new Block(id, lx, ly, lz);
-
-        /// <summary>
-        /// Replaces the block.
-        /// </summary>
-        /// <param name="id">Block id</param>
-        /// <param name="lb">Local coordinates of the block</param>
-        public void SetBlock(int id, Vector3i lb) => Blocks[lb] = new Block(id, lb);
+        /// <param name="position"></param>
+        /// <returns></returns>
+        public static int GetIndex(Vector3i position) => position.X + (position.Y * Size.X) + (position.Z * Size.X * Size.Y);
         /// <summary>
         /// Converts local block coordinates to world coordinates.
         /// </summary>
