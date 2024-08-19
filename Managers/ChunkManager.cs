@@ -45,9 +45,9 @@ namespace VoxelWorld.Managers
             }
 
             Lightmaps = [];
-            for (int x = -RenderDistance - 1; x <= RenderDistance + 1; x++)
+            for (int x = -RenderDistance; x <= RenderDistance; x++)
             {
-                for (int z = -RenderDistance - 1; z <= RenderDistance + 1; z++)
+                for (int z = -RenderDistance; z <= RenderDistance; z++)
                 {
                     Lightmaps.Add((x, z), new Lightmap((x, z)));
                 }

@@ -212,7 +212,7 @@ namespace VoxelWorld.World
         private void IntegrateTopBottomFaces(Block currentBlock, int lx, int ly, int lz)
         {
             // top face
-            TryGetBlock((lx, ly + 1, lz), out var nextBlock);
+            TryGetBlock(lx, ly + 1, lz, out var nextBlock);
             if (ly < Size.Y - 1 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Top);
@@ -223,7 +223,7 @@ namespace VoxelWorld.World
             }
 
             // bottom face
-            TryGetBlock((lx, ly - 1, lz), out nextBlock);
+            TryGetBlock(lx, ly - 1, lz, out nextBlock);
             if (ly > 0 && IsFaceIntegrable(nextBlock, currentBlock))
             {
                 IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
@@ -507,6 +507,21 @@ namespace VoxelWorld.World
 
             _indexCount += 4;
         }
+        private bool TryGetBlock(int x, int y, int z, out Block? block)
+        {
+            if (x >= 0 && x < Size.X &&
+                y >= 0 && y < Size.Y &&
+                z >= 0 && z < Size.Z)
+            {
+                block = this[x, y, z];
+                return true;
+            }
+            else
+            {
+                block = null;
+                return false;
+            }
+        }
         private bool TryGetBlock(Vector3i position, out Block? block)
         {
             if (position.X >= 0 && position.X < Size.X &&
@@ -529,13 +544,15 @@ namespace VoxelWorld.World
         /// <param name="y"></param>
         /// <param name="z"></param>
         /// <returns></returns>
-        public static int GetIndex(int x, int y, int z) => x + (y * Size.X) + (z * Size.X * Size.Y);
+        public static int GetIndex(int x, int y, int z) =>
+            x + (y * Size.X) + (z * Size.X * Size.Y);
         /// <summary>
         /// 
         /// </summary>
         /// <param name="position"></param>
         /// <returns></returns>
-        public static int GetIndex(Vector3i position) => position.X + (position.Y * Size.X) + (position.Z * Size.X * Size.Y);
+        public static int GetIndex(Vector3i position) =>
+            position.X + (position.Y * Size.X) + (position.Z * Size.X * Size.Y);
         /// <summary>
         /// Converts local block coordinates to world coordinates.
         /// </summary>
