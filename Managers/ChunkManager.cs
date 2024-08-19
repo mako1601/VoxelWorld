@@ -27,11 +27,11 @@ namespace VoxelWorld.Managers
         /// <summary>
         /// Default value is 12.
         /// </summary>
-        public static byte RenderDistance { get; set; } = 12;
+        public static byte RenderDistance { get; set; } = 4;
 
         private ChunkManager()
         {
-            Shader = new ShaderProgram("main.glslv", "main.glslf");
+            Shader       = new ShaderProgram("main.glslv", "main.glslf");
             TextureAtlas = new Texture(TextureManager.Instance.Atlas);
             Block.Blocks = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Block>>(File.ReadAllText("resources/data/blocks.json")) ?? throw new Exception("[CRITICAL] Blocks is null!");
 
@@ -321,9 +321,30 @@ namespace VoxelWorld.Managers
 
             Instance.Lightmaps.TryGetValue(c, out var lightmap);
 
-            var lb = ConvertWorldToLocal(wb, c);
+            if (lightmap is null && channel == 3)
+            {
+                if (wb.Y < 0)
+                {
+                    return 0x0;
+                }
+                else
+                {
+                    return 0xF;
+                }
+            }
+            else
+            {
+                if (wb.Y >= Chunk.Size.Y && channel == 3)
+                {
+                    return 0xF;
+                }
+                else
+                {
+                    var lb = ConvertWorldToLocal(wb, c);
 
-            return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                }
+            }
         }
         public static byte GetLight(int wx, int wy, int wz, int channel)
         {
@@ -331,9 +352,30 @@ namespace VoxelWorld.Managers
 
             Instance.Lightmaps.TryGetValue(c, out var lightmap);
 
-            var lb = ConvertWorldToLocal(wx, wy, wz, c);
+            if (lightmap is null && channel == 3)
+            {
+                if (wy < 0)
+                {
+                    return 0x0;
+                }
+                else
+                {
+                    return 0xF;
+                }
+            }
+            else
+            {
+                if (wy >= Chunk.Size.Y && channel == 3)
+                {
+                    return 0xF;
+                }
+                else
+                {
+                    var lb = ConvertWorldToLocal(wx, wy, wz, c);
 
-            return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                }
+            }
         }
         public static void SetLight(Vector3i wb, int channel, int value)
         {

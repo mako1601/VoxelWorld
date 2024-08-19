@@ -19,15 +19,15 @@ void main() {
     aTexCoord = vTexCoord;
 
     // testing
-    vec3 skyLightColor = vec3(1.0);
-    //float color = 4.0 * cos(uTime / 30.0) * cos(uTime / 30.0) - 1.5;
-    //
-    //if (color > 1.0)
-    //    skyLightColor = vec3(1.0);
-    //else if (color < 0.2)
-    //    skyLightColor = vec3(0.2);
-    //else
-    //    skyLightColor = vec3(color);
+    vec3 skyLightColor;// = vec3(1.0);
+    float color = 4.0 * cos(uTime / 30.0) * cos(uTime / 30.0) - 1.5;
+    
+    if (color > 1.0)
+        skyLightColor = vec3(1.0);
+    else if (color < 0.2)
+        skyLightColor = vec3(0.2);
+    else
+        skyLightColor = vec3(color);
 
     aColor = vec4(pow(vLight.rgb, vec3(uGamma)), 1.0);
     aColor.rgb = max(aColor.rgb, skyLightColor * vLight.a);

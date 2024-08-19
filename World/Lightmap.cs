@@ -1,11 +1,11 @@
 ﻿using OpenTK.Mathematics;
+
 using VoxelWorld.Managers;
 
 namespace VoxelWorld.World
 {
     public class Lightmap
     {
-        //public Dictionary<Vector3i, ushort> Map { get; set; }
         private ushort[] Map { get; set; }
         public Vector2i Position { get; }
 
@@ -35,7 +35,7 @@ namespace VoxelWorld.World
 
         public Lightmap(Vector2i position)
         {
-            Map = new ushort[Chunk.Size.X * (Chunk.Size.Y + 1) * Chunk.Size.Z];
+            Map = new ushort[Chunk.Size.X * Chunk.Size.Y * Chunk.Size.Z];
             Array.Fill<ushort>(Map, 0x0000);
             Position = position;
         }
@@ -98,61 +98,16 @@ namespace VoxelWorld.World
             }
         }
 
-        public byte GetLight(int lx, int ly, int lz, int channel)
-        {
-            if (TryGetLight(lx, ly, lz, out var value))
-            {
-                return (byte)(value >> 12 - channel * 4 & 0xF);
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        public byte GetLightR(int lx, int ly, int lz) 
-        {
-            if (TryGetLight(lx, ly, lz, out var value))
-            {
-                return (byte)(value >> 12 & 0xF);
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        public byte GetLightG(int lx, int ly, int lz)
-        {
-            if (TryGetLight(lx, ly, lz, out var value))
-            {
-                return (byte)(value >> 8 & 0xF);
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        public byte GetLightB(int lx, int ly, int lz)
-        {
-            if (TryGetLight(lx, ly, lz, out var value))
-            {
-                return (byte)(value >> 4 & 0xF);
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        public byte GetLightS(int lx, int ly, int lz)
-        {
-            if (TryGetLight(lx, ly, lz, out var value))
-            {
-                return (byte)(value & 0xF);
-            }
-            else
-            {
-                return 0;
-            }
-        }
+        public byte GetLight(int lx, int ly, int lz, int channel) =>
+            TryGetLight(lx, ly, lz, out var value) ? (byte)(value >> 12 - channel * 4 & 0xF) : (byte)0x0;
+        public byte GetLightR(int lx, int ly, int lz) =>
+            TryGetLight(lx, ly, lz, out var value) ? (byte)(value >> 12 & 0xF) : (byte)0x0;
+        public byte GetLightG(int lx, int ly, int lz) =>
+            TryGetLight(lx, ly, lz, out var value) ? (byte)(value >> 8 & 0xF)  : (byte)0x0;
+        public byte GetLightB(int lx, int ly, int lz) =>                      
+            TryGetLight(lx, ly, lz, out var value) ? (byte)(value >> 4 & 0xF)  : (byte)0x0;
+        public byte GetLightS(int lx, int ly, int lz) =>                      
+            TryGetLight(lx, ly, lz, out var value) ? (byte)(value & 0xF)       : (byte)0x0;
 
         public void SetLight(int lx, int ly, int lz, int channel, int value)
         {
@@ -189,10 +144,11 @@ namespace VoxelWorld.World
                 this[lx, ly, lz] = (ushort)(oldValue & 0xFFF0 | value);
             }
         }
+
         private bool TryGetLight(int x, int y, int z, out ushort light)
         {
             if (x >= 0 && x < Chunk.Size.X &&
-                y >= 0 && y <= Chunk.Size.Y &&
+                y >= 0 && y < Chunk.Size.Y &&
                 z >= 0 && z < Chunk.Size.Z)
             {
                 light = this[x, y, z];
@@ -200,32 +156,15 @@ namespace VoxelWorld.World
             }
             else
             {
-                light = 0;
+                light = 0x0000;
                 return false;
             }
         }
-        private bool TryGetLight(Vector3i position, out ushort light)
-        {
-            if (position.X >= 0 && position.X <  Chunk.Size.X &&
-                position.Y >= 0 && position.Y <= Chunk.Size.Y &&
-                position.Z >= 0 && position.Z <  Chunk.Size.Z)
-            {
-                light = this[position];
-                return true;
-            }
-            else
-            {
-                light = 0;
-                return false;
-            }
-        }
-        public static int GetIndex(int x, int y, int z) =>
-            x + (y * Chunk.Size.X) + (z * Chunk.Size.X * (Chunk.Size.Y + 1));
-        public static int GetIndex(Vector3i position) =>
-            position.X + (position.Y * Chunk.Size.X) + (position.Z * Chunk.Size.X * (Chunk.Size.Y + 1));
-        public Vector3i ConvertLocalToWorld(int lx, int ly, int lz) =>
+        private static int GetIndex(int x, int y, int z) =>
+            x + (y * Chunk.Size.X) + (z * Chunk.Size.X * Chunk.Size.Y);
+        private static int GetIndex(Vector3i position) =>
+            position.X + (position.Y * Chunk.Size.X) + (position.Z * Chunk.Size.X * Chunk.Size.Y);
+        private Vector3i ConvertLocalToWorld(int lx, int ly, int lz) =>
             (lx + Position.X * Chunk.Size.X, ly, lz + Position.Y * Chunk.Size.Z);
-        public Vector3i ConvertLocalToWorld(Vector3i lb) =>
-            (lb.X + Position.X * Chunk.Size.X, lb.Y, lb.Z + Position.Y * Chunk.Size.Z);
     }
 }
