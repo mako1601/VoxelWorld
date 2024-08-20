@@ -9,18 +9,6 @@ namespace VoxelWorld.World
         private ushort[] Map { get; set; }
         public Vector2i Position { get; }
 
-        private ushort this[Vector3i position]
-        {
-            get
-            {
-                return Map[GetIndex(position)];
-            }
-            set
-            {
-                Map[GetIndex(position)] = value;
-            }
-        }
-
         private ushort this[int x, int y, int z]
         {
             get
@@ -98,6 +86,8 @@ namespace VoxelWorld.World
             }
         }
 
+        public ushort GetLight(int lx, int ly, int lz) =>
+            TryGetLight(lx, ly, lz, out var value) ? value : (byte)0x0;
         public byte GetLight(int lx, int ly, int lz, int channel) =>
             TryGetLight(lx, ly, lz, out var value) ? (byte)(value >> 12 - channel * 4 & 0xF) : (byte)0x0;
         public byte GetLightR(int lx, int ly, int lz) =>

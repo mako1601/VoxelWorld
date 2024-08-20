@@ -193,7 +193,7 @@ namespace VoxelWorld.World
             {
                 ChunkManager.Instance.Chunks.TryGetValue(chunkOffset, out var chunk);
 
-                if (chunk is null) return;
+                if (chunk is null) return; // NOTE: if you need to render the side faces of the chunk, delete this and add to the bottom if 'chunk is null ||'
 
                 if (!chunk.TryGetBlock(borderBlock, out var block) ||
                     IsFaceIntegrable(block, currentBlock))

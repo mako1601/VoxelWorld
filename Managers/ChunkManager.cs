@@ -6,6 +6,7 @@ using VoxelWorld.World;
 using VoxelWorld.Entity;
 using VoxelWorld.Graphics;
 using VoxelWorld.Graphics.Renderer;
+using System.Linq;
 
 namespace VoxelWorld.Managers
 {
@@ -20,10 +21,14 @@ namespace VoxelWorld.Managers
         public Dictionary<Vector2i, Chunk> Chunks { get; private set; }
         public Dictionary<Vector2i, Lightmap> Lightmaps { get; private set; }
 
-        public LightSolver SolverR { get; private set; } = new LightSolver(0);
-        public LightSolver SolverG { get; private set; } = new LightSolver(1);
-        public LightSolver SolverB { get; private set; } = new LightSolver(2);
-        public LightSolver SolverS { get; private set; } = new LightSolver(3);
+        public LightSolver SolverR { get; private set; }
+        public LightSolver SolverG { get; private set; }
+        public LightSolver SolverB { get; private set; }
+        public LightSolver SolverS { get; private set; }
+
+        public Queue<Vector2i> AddQueue { get; private set; }
+        public Queue<Vector2i> RemoveQueue { get; private set; }
+
         /// <summary>
         /// Default value is 12.
         /// </summary>
@@ -35,21 +40,32 @@ namespace VoxelWorld.Managers
             TextureAtlas = new Texture(TextureManager.Instance.Atlas);
             Block.Blocks = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Block>>(File.ReadAllText("resources/data/blocks.json")) ?? throw new Exception("[CRITICAL] Blocks is null!");
 
-            Chunks = [];
-            for (int x = -RenderDistance; x <= RenderDistance; x++)
-            {
-                for (int z = -RenderDistance; z <= RenderDistance; z++)
-                {
-                    Chunks.Add((x, z), new Chunk((x, z)));
-                }
-            }
+            Chunks       = [];
+            Lightmaps    = [];
 
-            Lightmaps = [];
-            for (int x = -RenderDistance; x <= RenderDistance; x++)
+            SolverR      = new LightSolver(0);
+            SolverG      = new LightSolver(1);
+            SolverB      = new LightSolver(2);
+            SolverS      = new LightSolver(3);
+
+            AddQueue    = new Queue<Vector2i>();
+            RemoveQueue = new Queue<Vector2i>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="currentChunk"></param>
+        public void ManageQueues(Vector2i currentChunk)
+        {
+            for (int x = -RenderDistance + currentChunk.X; x <= RenderDistance + currentChunk.X; x++)
             {
-                for (int z = -RenderDistance; z <= RenderDistance; z++)
+                for (int z = -RenderDistance + currentChunk.Y; z <= RenderDistance + currentChunk.Y; z++)
                 {
-                    Lightmaps.Add((x, z), new Lightmap((x, z)));
+                    Vector2i c = (x, z);
+                    if (!Chunks.ContainsKey(c) && !AddQueue.Contains(c))
+                    {
+                        AddQueue.Enqueue(c);
+                    }
                 }
             }
         }
@@ -58,20 +74,25 @@ namespace VoxelWorld.Managers
         /// </summary>
         public void Create()
         {
-            foreach (var lightmap in Lightmaps)
-            {
-                lightmap.Value.Create();
-            }
+            var c = AddQueue.Dequeue();
+
+            if (!Chunks.TryAdd(c, new Chunk(c))) return;
+            Lightmaps.Add(c, new Lightmap(c));
+
+            Lightmaps[c].Create();
 
             SolverR.Solve();
             SolverG.Solve();
             SolverB.Solve();
             SolverS.Solve();
 
-            foreach (var chunk in Chunks)
-            {
-                chunk.Value.CreateMesh();
-            }
+            Chunks[c].CreateMesh();
+        }
+        public void Remove()
+        {
+            //var c = RemoveQueue.Dequeue();
+            //Chunks.Remove(c);
+            //Lightmaps.Remove(c);
         }
         /// <summary>
         /// Draws all the chunks.
@@ -315,6 +336,16 @@ namespace VoxelWorld.Managers
             Instance.Chunks[c].UpdateMesh();
             UpdateNearestChunks(c);
         }
+        public static ushort GetLight(Vector3i wb)
+        {
+            var c = GetChunkPosition(wb.X, wb.Z);
+
+            Instance.Lightmaps.TryGetValue(c, out var lightmap);
+
+            var lb = ConvertWorldToLocal(wb, c);
+
+            return lightmap?.GetLight(lb.X, lb.Y, lb.Z) ?? 0;
+        }
         public static byte GetLight(Vector3i wb, int channel)
         {
             var c = GetChunkPosition(wb.X, wb.Z);
@@ -342,7 +373,7 @@ namespace VoxelWorld.Managers
                 {
                     var lb = ConvertWorldToLocal(wb, c);
 
-                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0x0;
                 }
             }
         }
@@ -373,7 +404,7 @@ namespace VoxelWorld.Managers
                 {
                     var lb = ConvertWorldToLocal(wx, wy, wz, c);
 
-                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0;
+                    return lightmap?.GetLight(lb.X, lb.Y, lb.Z, channel) ?? 0x0;
                 }
             }
         }

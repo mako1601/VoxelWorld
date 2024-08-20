@@ -19,7 +19,7 @@ void main() {
     aTexCoord = vTexCoord;
 
     // testing
-    vec3 skyLightColor;// = vec3(1.0);
+    vec3 skyLightColor;
     float color = 4.0 * cos(uTime / 30.0) * cos(uTime / 30.0) - 1.5;
     
     if (color > 1.0)

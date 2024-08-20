@@ -30,7 +30,7 @@ namespace VoxelWorld.Window
     public class Game : GameWindow
     {
         TextureManager _textureManager;
-        ChunkManager _chunks;
+        ChunkManager _chunkManager;
         //private Skybox _skybox;
 
         private Player Player { get; set; }
@@ -100,15 +100,27 @@ namespace VoxelWorld.Window
             // init
             _textureManager = TextureManager.Instance;
             //_skybox = new Skybox();
-            _chunks = ChunkManager.Instance;
-            _chunks.Create();
-            Player = new Player((8, 32, 8), MousePosition);
+            Player = new Player((8f, 30.8f, 8f), MousePosition);
+            _chunkManager = ChunkManager.Instance;
             Interface = new UI(Player.SelectedBlock);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             base.OnUpdateFrame(args);
+
+            if (Player.IsMoved is true)
+            {
+                var newCurrentChunk = ChunkManager.GetChunkPosition(Player.RoundedPosition.Xz);
+                if (Player.CurrentChunk != newCurrentChunk)
+                {
+                    _chunkManager.ManageQueues(newCurrentChunk);
+                    Player.CurrentChunk = newCurrentChunk;
+                }
+            }
+
+            if (_chunkManager.AddQueue.Count > 0) _chunkManager.Create();
+            if (_chunkManager.RemoveQueue.Count > 0) _chunkManager.Remove();
 
             if (IsFocused is false) return;
 
@@ -142,7 +154,7 @@ namespace VoxelWorld.Window
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //_skybox.Draw(Player);
-            _chunks.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
+            _chunkManager.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
             Interface.Draw(Color3.Yellow, new UI.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
 
             Context.SwapBuffers();
@@ -162,7 +174,7 @@ namespace VoxelWorld.Window
 
             Interface.Delete();
             //_skybox.Delete();
-            _chunks.Delete();
+            _chunkManager.Delete();
 
             var windowSettings = new WindowSettings
             {
