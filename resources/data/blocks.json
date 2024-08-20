@@ -1,0 +1,177 @@
+[
+  {
+    "Name": "air",
+    "Type": 0,
+    "IsLightSource": false,
+    "IsLightPassing": true,
+    "Textures": null
+  },
+  {
+    "Name": "stone",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "stone.png",
+      "stone.png",
+      "stone.png",
+      "stone.png",
+      "stone.png",
+      "stone.png"
+    ]
+  },
+  {
+    "Name": "dirt",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "dirt.png",
+      "dirt.png",
+      "dirt.png",
+      "dirt.png",
+      "dirt.png",
+      "dirt.png"
+    ]
+  },
+  {
+    "Name": "grass",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "grass_block.png",
+      "grass_block_side.png",
+      "grass_block_side.png",
+      "grass_block_side.png",
+      "grass_block_side.png",
+      "dirt.png"
+    ]
+  },
+  {
+    "Name": "sand",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "sand.png",
+      "sand.png",
+      "sand.png",
+      "sand.png",
+      "sand.png",
+      "sand.png"
+    ]
+  },
+  {
+    "Name": "gravel",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "gravel.png",
+      "gravel.png",
+      "gravel.png",
+      "gravel.png",
+      "gravel.png",
+      "gravel.png"
+    ]
+  },
+  {
+    "Name": "oak_log",
+    "Type": 2,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "oak_log_top.png",
+      "oak_log.png",
+      "oak_log.png",
+      "oak_log.png",
+      "oak_log.png",
+      "oak_log_top.png"
+    ]
+  },
+  {
+    "Name": "oak_leaves",
+    "Type": 3,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "oak_leaves.png",
+      "oak_leaves.png",
+      "oak_leaves.png",
+      "oak_leaves.png",
+      "oak_leaves.png",
+      "oak_leaves.png"
+    ]
+  },
+  {
+    "Name": "glass",
+    "Type": 4,
+    "IsLightSource": false,
+    "IsLightPassing": true,
+    "Textures": [
+      "glass.png",
+      "glass.png",
+      "glass.png",
+      "glass.png",
+      "glass.png",
+      "glass.png"
+    ]
+  },
+  {
+    "Name": "red_light_source",
+    "Type": 1,
+    "IsLightSource": true,
+    "IsLightPassing": false,
+    "Textures": [
+      "red_light_source.png",
+      "red_light_source.png",
+      "red_light_source.png",
+      "red_light_source.png",
+      "red_light_source.png",
+      "red_light_source.png"
+    ]
+  },
+  {
+    "Name": "green_light_source",
+    "Type": 1,
+    "IsLightSource": true,
+    "IsLightPassing": false,
+    "Textures": [
+      "green_light_source.png",
+      "green_light_source.png",
+      "green_light_source.png",
+      "green_light_source.png",
+      "green_light_source.png",
+      "green_light_source.png"
+    ]
+  },
+  {
+    "Name": "blue_light_source",
+    "Type": 1,
+    "IsLightSource": true,
+    "IsLightPassing": false,
+    "Textures": [
+      "blue_light_source.png",
+      "blue_light_source.png",
+      "blue_light_source.png",
+      "blue_light_source.png",
+      "blue_light_source.png",
+      "blue_light_source.png"
+    ]
+  },
+  {
+    "Name": "debug_faces",
+    "Type": 1,
+    "IsLightSource": false,
+    "IsLightPassing": false,
+    "Textures": [
+      "DebugTopFace.png",
+      "DebugFrontFace.png",
+      "DebugBackFace.png",
+      "DebugLeftFace.png",
+      "DebugRightFace.png",
+      "DebugBottomFace.png"
+    ]
+  }
+]

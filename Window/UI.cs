@@ -3,12 +3,12 @@ using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.Entity;
+using VoxelWorld.Managers;
 using VoxelWorld.Graphics.Renderer;
-using static VoxelWorld.World.Chunks;
 
 namespace VoxelWorld.Window
 {
-    public class Interface
+    public class UI
     {
         public struct Info
         {
@@ -23,7 +23,7 @@ namespace VoxelWorld.Window
         private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
 
-        public Interface(string blockName)
+        public UI(int blockID)
         {
             FontSize = 32;
             DebugInfo = true;
@@ -31,7 +31,7 @@ namespace VoxelWorld.Window
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
             _lineBatch = new LineBatch();
-            _selectedBlock = new SelectedBlock(blockName);
+            _selectedBlock = new SelectedBlock(blockID);
         }
 
         public uint FontSize { get; set; }
@@ -110,19 +110,19 @@ namespace VoxelWorld.Window
             _debugText.Shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
             _debugText.Shader.SetVector3("uColor", (Vector3)color);
 
-            Vector3i playerPos = ((int)MathF.Floor(info.Player.Position.X), (int)MathF.Floor(info.Player.Position.Y), (int)MathF.Floor(info.Player.Position.Z));
-
             DrawLine($"FPS: {info.FPS}", 5f, 20f, 0.5f);
-            DrawLine($"Time spent in the world: {info.Time:0.000}", 5f, 40f, 0.5f);
-            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 60f, 0.5f);
+            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 40f, 0.5f);
+            DrawLine($"Time spent in the world: {info.Time:0.000}", 5f, 60f, 0.5f);
             DrawLine($"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})", 5f, 80f, 0.5f);
-            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 100f, 0.5f);
-            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 120f, 0.5f);
-            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 140f, 0.5f);
-            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 160f, 0.5f);
-            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 180f, 0.5f);
-            DrawLine($"Chunk Coords XZ: {GetChunkPosition(playerPos.Xz)}", 5f, 200f, 0.5f);
-            DrawLine($"Light RGBS: {GetBlock(playerPos)?.GetLight(0)}'{GetBlock(playerPos)?.GetLight(1)}'{GetBlock(playerPos)?.GetLight(2)}'{GetBlock(playerPos)?.GetLight(3)}'", 5f, 220f, 0.5f);
+            DrawLine($"Chunk Coords XZ: {ChunkManager.GetChunkPosition(info.Player.RoundedPosition.Xz)}", 5f, 100f, 0.5f);
+            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 120f, 0.5f);
+            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 140f, 0.5f);
+            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 160f, 0.5f);
+            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 180f, 0.5f);
+            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 200f, 0.5f);
+            DrawLine($"Light RGBS: {ChunkManager.GetLight(info.Player.RoundedPosition):X4}", 5f, 220f, 0.5f);
+            DrawLine($"Number of rendered Chunks: {ChunkManager.Instance.Chunks.Count}", 5f, 240f, 0.5f);
+            DrawLine($"Chunks in Queue: {ChunkManager.Instance.AddQueue.Count}", 5f, 260f, 0.5f);
 
             Disable(EnableCap.Blend);
         }

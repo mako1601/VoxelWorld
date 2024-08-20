@@ -1,10 +1,10 @@
 #version 460 core
 
 layout (location = 0) in vec3 vPosition;
-layout (location = 1) in vec3 vTexCoord; // not vec2, because xy = texCoord, z = texID
+layout (location = 1) in vec2 vTexCoord;
 layout (location = 2) in vec4 vLight;
 
-out vec3  aTexCoord;
+out vec2  aTexCoord;
 out vec4  aColor;
 out float aDistance;
 
@@ -21,7 +21,7 @@ void main() {
     // testing
     vec3 skyLightColor;
     float color = 4.0 * cos(uTime / 30.0) * cos(uTime / 30.0) - 1.5;
-
+    
     if (color > 1.0)
         skyLightColor = vec3(1.0);
     else if (color < 0.2)

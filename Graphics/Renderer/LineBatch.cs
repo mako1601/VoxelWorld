@@ -2,8 +2,9 @@
 using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 
-using VoxelWorld.Entity;
 using VoxelWorld.World;
+using VoxelWorld.Entity;
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Graphics.Renderer
 {
@@ -23,12 +24,15 @@ namespace VoxelWorld.Graphics.Renderer
             _shader = new ShaderProgram("line.glslv", "line.glslf");
 
             _chunkVAO = new VAO();
+
             _chunkVBO = new VBO(_chunkVertices);
             VAO.LinkToVAO(0, 3);
 
             _blockVAO = new VAO();
+
             _blockVBO = new VBO(_blockVertices);
             VAO.LinkToVAO(0, 3);
+
             _blockEBO = new EBO(_blockIndices);
         }
 
@@ -39,7 +43,7 @@ namespace VoxelWorld.Graphics.Renderer
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            var c = Chunks.GetChunkPosition((int)MathF.Floor(player.Position.X), (int)MathF.Floor(player.Position.Z));
+            var c = ChunkManager.GetChunkPosition((int)MathF.Floor(player.Position.X), (int)MathF.Floor(player.Position.Z));
 
             _shader.Bind();
             _shader.SetVector4("uColor", (color.X, color.Y, color.Z, 1f));
@@ -48,7 +52,6 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _chunkVAO.Bind();
-
             DrawArrays(PrimitiveType.Lines, 0, _chunkVertices.Count);
 
             Disable(EnableCap.CullFace);
@@ -71,7 +74,6 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _blockVAO.Bind();
-
             DrawElements(PrimitiveType.Lines, _blockIndices.Count, DrawElementsType.UnsignedInt, 0);
 
             Disable(EnableCap.CullFace);

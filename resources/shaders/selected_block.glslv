@@ -1,10 +1,10 @@
 #version 460 core
 
 layout (location = 0) in vec3  vPosition;
-layout (location = 1) in vec3  vTexCoord; // not vec2, because xy = texCoord, z = texID
+layout (location = 1) in vec2  vTexCoord;
 layout (location = 2) in float vBrightness;
 
-out vec3 aTexCoord;
+out vec2 aTexCoord;
 out vec4 aColor;
 
 uniform mat4 uModel1;

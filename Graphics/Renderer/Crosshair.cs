@@ -16,16 +16,18 @@ namespace VoxelWorld.Graphics.Renderer
         public Crosshair()
         {
             _shader = new ShaderProgram("crosshair.glslv", "crosshair.glslf");
+
             _vao = new VAO();
+
             _vbo = new VBO(_vertices);
             VAO.LinkToVAO(0, 2);
+
             _textureVBO = new VBO(_textureVertices);
             VAO.LinkToVAO(1, 2);
-            _ebo = new EBO(_indices);
-            _texture = new Texture("crosshair.png");
 
-            _shader.Bind();
-            _shader.SetInt("uTexture", 0);
+            _ebo = new EBO(_indices);
+
+            _texture = new Texture("utilities/crosshair.png");
         }
 
         public void Draw(Vector2i windowSize)
@@ -38,7 +40,6 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uScale", Matrix4.CreateScale(32f / windowSize.Y));
 
             _texture.Bind();
-
             _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
 

@@ -1,10 +1,8 @@
 ﻿using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace VoxelWorld.Entity
 {
-    // for the future
     public enum Movement
     {
         Nothing = 0,
@@ -26,8 +24,14 @@ namespace VoxelWorld.Entity
         /// </summary>
         public float Speed { get; set; } = 20f;
         public Vector3 Position { get; set; }
+        public Vector3i RoundedPosition { get; set; }
+        public Vector2i? CurrentChunk { get; set; }
+        public bool IsMoved { get; private set; } = true;
         public Camera Camera { get; set; }
-        public string SelectedBlock { get; set; } = "stone";
+        /// <summary>
+        /// Default value is 1 (stone block).
+        /// </summary>
+        public int SelectedBlock { get; set; } = 1;
         /// <summary>
         /// Default value is 5.
         /// </summary>
@@ -38,8 +42,9 @@ namespace VoxelWorld.Entity
 
         public Player(Vector3 playerPosition, Vector2 cursorPosition)
         {
-            Position = playerPosition;
-            Camera   = new Camera(cursorPosition);
+            Position        = playerPosition;
+            RoundedPosition = RoundPosition();
+            Camera          = new Camera(cursorPosition);
         }
 
         public void KeyboardInput(KeyboardState input, float time)
@@ -77,6 +82,16 @@ namespace VoxelWorld.Entity
             }
 
             Position += direction * Speed * time;
+            var newRoundedPosition = RoundPosition();
+            if (RoundedPosition != newRoundedPosition)
+            {
+                RoundedPosition = newRoundedPosition;
+                IsMoved = true;
+            }
+            else
+            {
+                IsMoved = false;
+            }
         }
 
         public void MouseInput(MouseState input, double time)
@@ -93,5 +108,8 @@ namespace VoxelWorld.Entity
             if (input.IsButtonDown(MouseButton.Right))
                 _lastRightClickTime = Camera.DownPlaceBlock(SelectedBlock, _lastRightClickTime, time);
         }
+
+        private Vector3i RoundPosition() =>
+            ((int)MathF.Floor(Position.X), (int)MathF.Floor(Position.Y), (int)MathF.Floor(Position.Z));
     }
 }

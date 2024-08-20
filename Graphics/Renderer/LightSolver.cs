@@ -1,8 +1,8 @@
 using OpenTK.Mathematics;
 
-using VoxelWorld.World;
+using VoxelWorld.Managers;
 
-namespace VoxelWorld.Graphics
+namespace VoxelWorld.Graphics.Renderer
 {
     public class LightSolver
     {
@@ -14,16 +14,16 @@ namespace VoxelWorld.Graphics
         /// </summary>
         private int Channel { get; set; }
         /// <summary>
-        /// X - world X,
-        /// Y - world Y,
-        /// Z - world Z,
+        /// X - local X,
+        /// Y - local Y,
+        /// Z - local Z,
         /// W - light
         /// </summary>
         private Queue<Vector4i> AddQueue { get; set; }
         /// <summary>
-        /// X - world X,
-        /// Y - world Y,
-        /// Z - world Z,
+        /// X - local X,
+        /// Y - local Y,
+        /// Z - local Z,
         /// W - light
         /// </summary>
         private Queue<Vector4i> RemoveQueue { get; set; }
@@ -43,29 +43,29 @@ namespace VoxelWorld.Graphics
         /// <param name="wb">World coordinates of the block</param>
         public void Add(Vector3i wb)
         {
-            Add(wb, Chunks.GetLight(wb, Channel));
+            Add(wb, ChunkManager.GetLight(wb, Channel));
         }
         /// <summary>
         /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wx">World coordinate X of the block</param>
-        /// <param name="wy">World coordinate Y of the block</param>
-        /// <param name="wz">World coordinate Z of the block</param>
+        /// <param name="wx">Local coordinate X of the block</param>
+        /// <param name="wy">Local coordinate Y of the block</param>
+        /// <param name="wz">Local coordinate Z of the block</param>
         public void Add(int wx, int wy, int wz)
         {
-            Add(wx, wy, wz, Chunks.GetLight(wx, wy, wz, Channel));
+            Add(wx, wy, wz, ChunkManager.GetLight(wx, wy, wz, Channel));
         }
         /// <summary>
         /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
         /// </summary>
-        /// <param name="wb">World coordinates of the block</param>
+        /// <param name="wb">Local coordinates of the block</param>
         /// <param name="value">Light intensity value</param>
         public void Add(Vector3i wb, int value)
         {
             if (value < 2) return;
 
             AddQueue.Enqueue((wb.X, wb.Y, wb.Z, value));
-            Chunks.GetBlock(wb).SetLight(Channel, value);
+            ChunkManager.SetLight(wb.X, wb.Y, wb.Z, Channel, value);
         }
         /// <summary>
         /// Adds the light value to the add queue and replaces the light value at the block with the specified value.
@@ -79,7 +79,7 @@ namespace VoxelWorld.Graphics
             if (value < 2) return;
 
             AddQueue.Enqueue((wx, wy, wz, value));
-            Chunks.GetBlock(wx, wy, wz).SetLight(Channel, value);
+            ChunkManager.SetLight(wx, wy, wz, Channel, value);
         }
         /// <summary>
         /// Adds the light value to the remove queue and replaces the light value at the block with the specified value.
@@ -87,12 +87,12 @@ namespace VoxelWorld.Graphics
         /// <param name="wb">World coordinates of the block</param>
         public void Remove(Vector3i wb)
         {
-            int light = Chunks.GetLight(wb, Channel);
+            int light = ChunkManager.GetLight(wb, Channel);
 
             if (light == 0) return;
 
             RemoveQueue.Enqueue((wb.X, wb.Y, wb.Z, light));
-            Chunks.GetBlock(wb).SetLight(Channel, 0);
+            ChunkManager.SetLight(wb.X, wb.Y, wb.Z, Channel, 0);
         }
         /// <summary>
         /// Adds the light value to the remove queue and replaces the light value at the block with the specified value.
@@ -102,12 +102,12 @@ namespace VoxelWorld.Graphics
         /// <param name="wz">World coordinate Z of the block</param>
         public void Remove(int wx, int wy, int wz)
         {
-            int light = Chunks.GetLight(wx, wy, wz, Channel);
+            int light = ChunkManager.GetLight(wx, wy, wz, Channel);
 
             if (light == 0) return;
 
             RemoveQueue.Enqueue((wx, wy, wz, light));
-            Chunks.GetBlock(wx, wy, wz).SetLight(Channel, 0);
+            ChunkManager.SetLight(wx, wy, wz, Channel, 0);
         }
         /// <summary>
         /// Recalculates the lights if the remove or add queue is non-empty.
@@ -134,16 +134,16 @@ namespace VoxelWorld.Graphics
                     int y = item.Y + coords[i * 3 + 1];
                     int z = item.Z + coords[i * 3 + 2];
 
-                    var block = Chunks.GetBlock(x, y, z);
+                    var block = ChunkManager.GetBlock(x, y, z);
 
                     if (block is not null)
                     {
-                        int light = block.GetLight(Channel);
+                        int light = ChunkManager.GetLight(x, y, z, Channel);
 
                         if (light > 0 && light == item.W - 1)
                         {
                             RemoveQueue.Enqueue((x, y, z, light));
-                            block.SetLight(Channel, 0);
+                            ChunkManager.SetLight(x, y, z, Channel, 0);
                         }
                         else if (light > item.W - 1)
                         {
@@ -165,16 +165,16 @@ namespace VoxelWorld.Graphics
                     int y = item.Y + coords[i * 3 + 1];
                     int z = item.Z + coords[i * 3 + 2];
 
-                    var block = Chunks.GetBlock(x, y, z);
+                    var block = ChunkManager.GetBlock(x, y, z);
 
                     if (block is not null)
                     {
-                        int light = block.GetLight(Channel);
+                        int light = ChunkManager.GetLight(x, y, z, Channel);
 
                         if (block.IsLightPassing is true && light + 1 < item.W)
                         {
                             AddQueue.Enqueue((x, y, z, item.W - 1));
-                            block.SetLight(Channel, item.W - 1);
+                            ChunkManager.SetLight(x, y, z, Channel, item.W - 1);
                         }
                     }
                 }
