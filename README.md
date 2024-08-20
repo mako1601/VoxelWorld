@@ -15,16 +15,16 @@ VoxelWorld is a project in which I study 3D graphics based on Minecraft, but wit
 - <kbd>**1-8**</kbd> - change block
 - <kbd>**R**</kbd> <kbd>**G**</kbd> <kbd>**B**</kbd> - red, green, blue lamp
 - <kbd>**Mouse Scroll**</kbd> - change fov
-- <kbd>**Q**</kbd> - toggle debug info
+- <kbd>**F3**</kbd> - toggle debug info
+- <kbd>**Q**</kbd> - debug faces block
 - <kbd>**E**</kbd> - toggle "white world"
 - <kbd>**Z**</kbd> - toggle polygon mode
 - <kbd>**Esc**</kbd> - close window
-- <kbd>**Alt+Enter**</kbd> - toggle fullscreen
+- <kbd>**F11**</kbd> or <kbd>**Alt+Enter**</kbd> - toggle fullscreen
 
 # Todo list:
 - [ ] Basic features:
   - [x] Camera
-  - [x] Texture Array
   - [x] Discarding unnecessary block faces
   - [x] Transparency
   - [x] Skybox
