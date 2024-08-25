@@ -29,39 +29,33 @@ namespace VoxelWorld.World
         private static int _id = 0;
         public int ID { get; private set; }
         public string Name { get; set; }
-        /// <summary>
-        /// Local coordinates of the block.
-        /// </summary>
-        public Vector3i Position { get; set; }
         public TypeOfBlock Type { get; private set; }
         public bool IsLightSource { get; private set; }
         public bool IsLightPassing { get; private set; }
 
         private string[]? Textures { get; set; }
 
-        [Newtonsoft.Json.JsonConstructor]
-        public Block(string name, TypeOfBlock type, bool isLightSource, bool isLightPassing, string[]? textures)
-        {
-            ID             = _id++;
-            Name           = name;
-            Position       = Vector3i.Zero;
-            Type           = type;
-            IsLightSource  = isLightSource;
-            IsLightPassing = isLightPassing;
-            Textures       = textures;
-        }
-        public Block(int id, Vector3i lb)
+        public Block(int id)
         {
             Block block = Blocks[id];
 
             ID             = block.ID;
             Name           = block.Name;
-            Position       = lb;
             Type           = block.Type;
             IsLightSource  = block.IsLightSource;
             IsLightPassing = block.IsLightPassing;
         }
-        public Block(int id, int lx, int ly, int lz) : this(id, (lx, ly, lz)) { }
+
+        [Newtonsoft.Json.JsonConstructor]
+        private Block(string name, TypeOfBlock type, bool isLightSource, bool isLightPassing, string[]? textures)
+        {
+            ID             = _id++;
+            Name           = name;
+            Type           = type;
+            IsLightSource  = isLightSource;
+            IsLightPassing = isLightPassing;
+            Textures       = textures;
+        }
 
         public static List<Vector3> GetBlockVertices(Face face) => blockVertexData[face];
         public static List<Vector2> GetBlockUV(int id, Face face)
@@ -70,7 +64,7 @@ namespace VoxelWorld.World
 
             return [ (tex[0], tex[3]), (tex[2], tex[3]), (tex[2], tex[1]), (tex[0], tex[1]) ];
         }
-        public override string ToString() => $"'{Name}', {Position}";
+        public override string ToString() => $"{Name}";
 
         private static readonly Dictionary<Face, List<Vector3>> blockVertexData = new()
         {

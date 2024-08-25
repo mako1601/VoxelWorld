@@ -69,7 +69,7 @@ namespace VoxelWorld.Graphics.Renderer
 
             _shader.Bind();
             _shader.SetVector4("uColor", (0f, 0f, 0f, 0.5f));
-            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(player.Camera.Ray.Block.Position));
+            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(player.Camera.Ray.Position));
             _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 

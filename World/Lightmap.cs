@@ -6,10 +6,10 @@ namespace VoxelWorld.World
 {
     public class Lightmap
     {
-        private ushort[] Map { get; set; }
+        public ushort[] Map { get; set; }
         public Vector2i Position { get; }
 
-        private ushort this[int x, int y, int z]
+        public ushort this[int x, int y, int z]
         {
             get
             {
@@ -30,6 +30,36 @@ namespace VoxelWorld.World
 
         public void Create()
         {
+            for (int y = 0; y < Chunk.Size.Y; y++)
+            {
+                for (int x = 0; x < Chunk.Size.X; x++)
+                {
+                    for (int z = 0; z < Chunk.Size.Z; z++)
+                    {
+                        var wb = ConvertLocalToWorld(x, y, z);
+                        var block = ChunkManager.GetBlock(wb);
+
+                        if (block?.IsLightSource is true)
+                        {
+                            switch (block.ID)
+                            {
+                                case 9: // red lamp
+                                    ChunkManager.Instance.SolverR.Add(wb, 13);
+                                    break;
+
+                                case 10: // green lamp
+                                    ChunkManager.Instance.SolverG.Add(wb, 13);
+                                    break;
+
+                                case 11: // blue lamp
+                                    ChunkManager.Instance.SolverB.Add(wb, 13);
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+
             for (int x = 0; x < Chunk.Size.X; x++)
             {
                 for (int z = 0; z < Chunk.Size.Z; z++)
@@ -44,20 +74,6 @@ namespace VoxelWorld.World
                     }
                 }
             }
-
-            //for (int y = 0; y < Size.Y; y++)
-            //{
-            //    for (int x = 0; x < Size.X; x++)
-            //    {
-            //        for (int z = 0; z < Size.Z; z++)
-            //        {
-            //            if (Blocks[(x, y, z)].IsLightSource)
-            //            {
-            //              // ...
-            //            }
-            //        }
-            //    }
-            //}
 
             for (int x = 0; x < Chunk.Size.X; x++)
             {
@@ -152,8 +168,6 @@ namespace VoxelWorld.World
         }
         private static int GetIndex(int x, int y, int z) =>
             x + (y * Chunk.Size.X) + (z * Chunk.Size.X * Chunk.Size.Y);
-        private static int GetIndex(Vector3i position) =>
-            position.X + (position.Y * Chunk.Size.X) + (position.Z * Chunk.Size.X * Chunk.Size.Y);
         private Vector3i ConvertLocalToWorld(int lx, int ly, int lz) =>
             (lx + Position.X * Chunk.Size.X, ly, lz + Position.Y * Chunk.Size.Z);
     }

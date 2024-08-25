@@ -9,51 +9,117 @@ namespace VoxelWorld.Entity
     public struct Ray
     {
         public Block? Block { get; set; }
+        public Vector3i Position { get; set; }
         public Vector3i Normal { get; set; }
         public Vector3 End { get; set; }
 
         public Ray()
         {
-            Block  = null;
-            Normal = (0, 0, 0);
-            End    = (0, 0, 0);
+            Block    = null;
+            Position = Vector3i.Zero;
+            Normal   = Vector3i.Zero;
+            End      = Vector3.Zero;
         }
 
-        public Ray(Block block, Vector3i normal, Vector3 end)
+        public Ray(Block block, Vector3i position, Vector3i normal, Vector3 end)
         {
-            Block  = block;
-            Normal = normal;
-            End    = end;
+            Block    = block;
+            Position = position;
+            Normal   = normal;
+            End      = end;
         }
     }
 
     public class Camera
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public float Sensitivity { get; set; } = 0.1f;
-        public float FOV { get; set; } = 90f;
+        /// <summary>
+        /// 
+        /// </summary>
+        public float FOV { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public bool FirstMove { get; set; } = true;
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public Vector2 LastPosition { get; set; }
-
-        public Vector3 Up    { get; set; } =  Vector3.UnitY;
-        public Vector3 Front { get; set; } = -Vector3.UnitZ;
-        public Vector3 Right { get; set; } =  Vector3.UnitX;
-
-        public float Pitch { get; set; } = 0f;
-        public float Yaw   { get; set; } = -90f;
-
+        /// <summary>
+        /// 
+        /// </summary>
+        public Vector3 Up { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public Vector3 Front { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public Vector3 Right { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public float Pitch { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public float Yaw { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public float AspectRatio { get; set; } = 0f;
-
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public Ray Ray { get; set; } = new Ray();
 
-        public Camera(Vector2 cursorPosition)
+        public Camera(Vector2 cursorPosition, Camera? camera = null)
         {
             LastPosition = cursorPosition;
+
+            FOV   = camera?.FOV   ?? 90f;
+            Up    = camera?.Up    ?? Vector3.UnitY;
+            Front = camera?.Front ?? -Vector3.UnitZ;
+            Right = camera?.Right ?? Vector3.UnitX;
+            Pitch = camera?.Pitch ?? 0f;
+            Yaw   = camera?.Yaw   ?? -90f;
+
             UpdateVectors();
         }
 
+        [Newtonsoft.Json.JsonConstructor]
+        private Camera(float fov, Vector3 up, Vector3 front, Vector3 right, float pitch, float yaw)
+        {
+            FOV   = fov;
+            Up    = up;
+            Front = front;
+            Right = right;
+            Pitch = pitch;
+            Yaw   = yaw;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="position"></param>
+        /// <returns></returns>
         public Matrix4 GetViewMatrix(Vector3 position) => Matrix4.LookAt(position, position + Front, Up);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public Matrix4 GetProjectionMatrix() => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, 0.001f, 1000f);
-
+        /// <summary>
+        /// 
+        /// </summary>
         private void UpdateVectors()
         {
             Vector3 front;
@@ -66,7 +132,11 @@ namespace VoxelWorld.Entity
             Right = Vector3.Normalize(Vector3.Cross(Front, Vector3.UnitY));
             Up    = Vector3.Normalize(Vector3.Cross(Right, Front));
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cursorState"></param>
+        /// <param name="position"></param>
         public void Move(CursorState cursorState, Vector2 position)
         {
             if (cursorState is CursorState.Grabbed)
@@ -91,49 +161,75 @@ namespace VoxelWorld.Entity
                 }
             }
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="lastClickTime"></param>
+        /// <returns></returns>
         public double PressedDestroyBlock(double lastClickTime)
         {
             if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                ChunkManager.SetBlock(0, Ray.Block.Position, Movement.Destroy);
+                ChunkManager.SetBlock(0, Ray.Position, Movement.Destroy);
                 return 0;
             }
 
             return lastClickTime;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="lastClickTime"></param>
+        /// <param name="time"></param>
+        /// <returns></returns>
         public double DownDestroyBlock(double lastClickTime, double time)
         {
             if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                ChunkManager.SetBlock(0, Ray.Block.Position, Movement.Destroy);
+                ChunkManager.SetBlock(0, Ray.Position, Movement.Destroy);
                 return 0;
             }
 
             return lastClickTime + time;
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="lastClickTime"></param>
+        /// <returns></returns>
         public double PressedPlaceBlock(int id, double lastClickTime)
         {
             if (Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                ChunkManager.SetBlock(id, Ray.Block.Position + Ray.Normal, Movement.Place);
+                ChunkManager.SetBlock(id, Ray.Position + Ray.Normal, Movement.Place);
                 return 0;
             }
 
             return lastClickTime;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="lastClickTime"></param>
+        /// <param name="time"></param>
+        /// <returns></returns>
         public double DownPlaceBlock(int id, double lastClickTime, double time)
         {
             if (lastClickTime >= 0.2 && Ray.Block is not null && Ray.Block.Type is not Block.TypeOfBlock.Air)
             {
-                ChunkManager.SetBlock(id, Ray.Block.Position + Ray.Normal, Movement.Place);
+                ChunkManager.SetBlock(id, Ray.Position + Ray.Normal, Movement.Place);
                 return 0;
             }
 
             return lastClickTime + time;
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="maxLength"></param>
         public void RayCast(Vector3 position, float maxLength)
         {
             float posX = position.X;
@@ -185,7 +281,7 @@ namespace VoxelWorld.Entity
                     if (steppedIndex == 1) normal.Y = -stepy;
                     if (steppedIndex == 2) normal.Z = -stepz;
 
-                    Ray = new Ray(block, normal, end);
+                    Ray = new Ray(block, (ix, iy, iz), normal, end);
                     return;
                 }
                 if (txMax < tyMax)

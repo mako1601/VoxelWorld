@@ -118,11 +118,11 @@ namespace VoxelWorld.Window
             DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 120f, 0.5f);
             DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 140f, 0.5f);
             DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 160f, 0.5f);
-            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block}", 5f, 180f, 0.5f);
+            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block} {info.Player.Camera.Ray.Position}", 5f, 180f, 0.5f);
             DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 200f, 0.5f);
             DrawLine($"Light RGBS: {ChunkManager.GetLight(info.Player.RoundedPosition):X4}", 5f, 220f, 0.5f);
             DrawLine($"Number of rendered Chunks: {ChunkManager.Instance.Chunks.Count}", 5f, 240f, 0.5f);
-            DrawLine($"Chunks in Queue: {ChunkManager.Instance.AddQueue.Count}", 5f, 260f, 0.5f);
+            DrawLine($"Chunks in Queue: {ChunkManager.Instance.AddChunkQueue.Count}", 5f, 260f, 0.5f);
 
             Disable(EnableCap.Blend);
         }

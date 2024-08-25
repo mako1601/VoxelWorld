@@ -5,32 +5,31 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using static OpenTK.Graphics.OpenGL.GL;
 
+using Newtonsoft.Json;
+
 using VoxelWorld.Entity;
 using VoxelWorld.Managers;
+using VoxelWorld.JsonConverters;
 
 namespace VoxelWorld.Window
 {
     public struct WindowSettings
     {
-        public int X { get; set; }
-        public int Y { get; set; }
-        public int Width  { get; set; }
-        public int Height { get; set; }
-        public WindowState WindowState { get; set; }
+        public Vector2i Location { get; set; }
+        public Vector2i Size { get; set; }
+        public WindowState State { get; set; }
         public static WindowSettings Default => new()
         {
-            X = 100,
-            Y = 100,
-            Width = 1280,
-            Height = 768,
-            WindowState = WindowState.Normal
+            Location = (100, 100),
+            Size     = (1280, 768),
+            State    = WindowState.Normal
         };
     }
 
     public class Game : GameWindow
     {
-        TextureManager _textureManager;
-        ChunkManager _chunkManager;
+        private TextureManager _textureManager;
+        private ChunkManager _chunkManager;
         //private Skybox _skybox;
 
         private Player Player { get; set; }
@@ -68,10 +67,10 @@ namespace VoxelWorld.Window
                     Title = title,
                     // StartFocused
                     // StartVisible
-                    WindowState = settings.WindowState,
+                    WindowState = settings.State,
                     // WindowBorder
-                    Location = (settings.X, settings.Y),
-                    ClientSize = (settings.Width, settings.Height),
+                    Location = settings.Location,
+                    ClientSize = settings.Size,
                     MinimumClientSize = (480, 360),
                     // MaximumClientSize
                     // AspectRatio
@@ -100,8 +99,9 @@ namespace VoxelWorld.Window
             // init
             _textureManager = TextureManager.Instance;
             //_skybox = new Skybox();
-            Player = new Player((8f, 30.8f, 8f), MousePosition);
             _chunkManager = ChunkManager.Instance;
+            Player = Player.Load("saves/world/player.json", MousePosition);
+            ChunkManager.Instance.Load(Player.CurrentChunk);
             Interface = new UI(Player.SelectedBlock);
         }
 
@@ -109,20 +109,26 @@ namespace VoxelWorld.Window
         {
             base.OnUpdateFrame(args);
 
-            if (Player.IsMoved is true)
+            if (ChunkManager.Instance.AddChunkQueue.Count == 0 &&
+                ChunkManager.Instance.AddLightmapQueue.Count == 0 &&
+                ChunkManager.Instance.UpdateMesh.Count > 0)
             {
-                var newCurrentChunk = ChunkManager.GetChunkPosition(Player.RoundedPosition.Xz);
-                if (Player.CurrentChunk != newCurrentChunk)
-                {
-                    _chunkManager.ManageQueues(newCurrentChunk);
-                    Player.CurrentChunk = newCurrentChunk;
-                }
+                ChunkManager.Instance.UpdateMesh = [.. ChunkManager.Instance.UpdateMesh.OrderBy(chunk => ChunkManager.GetDistance(Player.CurrentChunk, chunk))];
+                var c = ChunkManager.Instance.UpdateMesh.First();
+                ChunkManager.Instance.UpdateMesh.Remove(c);
+                ChunkManager.Instance.Chunks.TryGetValue(c, out var chunk);
+                chunk?.CreateMesh();
             }
 
-            if (_chunkManager.AddQueue.Count > 0) _chunkManager.Create();
-            if (_chunkManager.RemoveQueue.Count > 0) _chunkManager.Remove();
+            if (Player.IsMovedToAnotherChunk)
+            {
+                ChunkManager.Instance.UpdateVisibleChunks(Player.CurrentChunk);
+            }
 
-            if (IsFocused is false) return;
+            ChunkManager.Instance.RemoveChunk();
+            ChunkManager.Instance.CreateChunk();
+
+            if (!IsFocused) return;
 
             FrameCount++;
             Time  += args.Time;
@@ -133,7 +139,8 @@ namespace VoxelWorld.Window
                 FPS = FrameCount * 5;
                 System.Diagnostics.Process curPorcess = System.Diagnostics.Process.GetCurrentProcess();
                 Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
-                    + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
+                    + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb "
+                    + $"Threads count: {curPorcess.Threads.Count}";
                 curPorcess.Dispose();
                 FrameCount = 0;
                 Timer -= 0.2;
@@ -148,13 +155,13 @@ namespace VoxelWorld.Window
         {
             base.OnRenderFrame(args);
 
-            if (IsFocused is false) return;
+            if (!IsFocused) return;
 
             ClearColor(BackgroundColor);
             Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             //_skybox.Draw(Player);
-            _chunkManager.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
+            ChunkManager.Instance.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
             Interface.Draw(Color3.Yellow, new UI.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
 
             Context.SwapBuffers();
@@ -174,18 +181,23 @@ namespace VoxelWorld.Window
 
             Interface.Delete();
             //_skybox.Delete();
-            _chunkManager.Delete();
+            ChunkManager.Instance.Delete();
+
+            JsonSerializerSettings settings = new();
+            settings.Converters.Add(new Vector2JC());
+            settings.Converters.Add(new Vector2iJC());
+            settings.Converters.Add(new Vector3JC());
+            settings.Converters.Add(new Vector3iJC());
+            File.WriteAllTextAsync("saves/world/player.json", JsonConvert.SerializeObject(Player, Formatting.Indented, settings));
 
             var windowSettings = new WindowSettings
             {
-                X = this.WindowState is WindowState.Minimized ? 0 : this.Location.X,
-                Y = this.WindowState is WindowState.Minimized ? 0 : this.Location.Y,
-                Width = this.ClientSize.X,
-                Height = this.ClientSize.Y,
-                WindowState = this.WindowState is WindowState.Minimized ? WindowState.Normal : this.WindowState,
+                Location = (this.WindowState is WindowState.Minimized ? 0 : this.Location.X, this.WindowState is WindowState.Minimized ? 0 : this.Location.Y),
+                Size     = this.ClientSize,
+                State    = this.WindowState is WindowState.Minimized ? WindowState.Normal : this.WindowState,
             };
 
-            File.WriteAllText("WindowSettings.json", Newtonsoft.Json.JsonConvert.SerializeObject(windowSettings, Newtonsoft.Json.Formatting.Indented));
+            File.WriteAllTextAsync("WindowSettings.json", JsonConvert.SerializeObject(windowSettings, Formatting.Indented, settings));
         }
 
         #region Input
@@ -220,7 +232,7 @@ namespace VoxelWorld.Window
 
             if (e.Key is Keys.Z)
             {
-                if (IsPolygonMode is true)
+                if (IsPolygonMode)
                 {
                     PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Fill);
                     IsPolygonMode = false;

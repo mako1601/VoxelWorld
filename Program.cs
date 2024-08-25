@@ -17,9 +17,8 @@ namespace VoxelWorld
                 string json = File.ReadAllText("WindowSettings.json");
                 settings = JsonConvert.DeserializeObject<WindowSettings>(json);
 
-                settings.X = settings.WindowState is WindowState.Minimized ? 0 : settings.X;
-                settings.Y = settings.WindowState is WindowState.Minimized ? 0 : settings.Y;
-                settings.WindowState = settings.WindowState is WindowState.Minimized ? WindowState.Normal : settings.WindowState;
+                settings.Location = settings.State is WindowState.Minimized ? (0, 0) : settings.Location;
+                settings.State = settings.State is WindowState.Minimized ? WindowState.Normal : settings.State;
             }
             else
             {

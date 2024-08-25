@@ -1,5 +1,8 @@
-﻿using OpenTK.Mathematics;
+﻿using Newtonsoft.Json;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Entity
 {
@@ -22,11 +25,28 @@ namespace VoxelWorld.Entity
         /// <summary>
         /// Default value is 8.
         /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public float Speed { get; set; } = 20f;
+        /// <summary>
+        /// 
+        /// </summary>
         public Vector3 Position { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
         public Vector3i RoundedPosition { get; set; }
-        public Vector2i? CurrentChunk { get; set; }
-        public bool IsMoved { get; private set; } = true;
+        /// <summary>
+        /// 
+        /// </summary>
+        public Vector2i CurrentChunk { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public bool IsMovedToAnotherChunk { get; private set; }
+        /// <summary>
+        /// 
+        /// </summary>
         public Camera Camera { get; set; }
         /// <summary>
         /// Default value is 1 (stone block).
@@ -35,16 +55,54 @@ namespace VoxelWorld.Entity
         /// <summary>
         /// Default value is 5.
         /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public float RayDistance { get; set; } = 12f;
 
         private double _lastLeftClickTime  = 0d;
         private double _lastRightClickTime = 0d;
 
-        public Player(Vector3 playerPosition, Vector2 cursorPosition)
+        public Player(Vector2 cursorPosition, Player? player = null)
         {
-            Position        = playerPosition;
-            RoundedPosition = RoundPosition();
-            Camera          = new Camera(cursorPosition);
+            if (player is not null)
+            {
+                Position              = player.Position;
+                RoundedPosition       = RoundPosition();
+                CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
+                IsMovedToAnotherChunk = false;
+                Camera                = new Camera(cursorPosition, player.Camera);
+                SelectedBlock         = player.SelectedBlock;
+            }
+            else
+            {
+                Position              = (8, 36, 8);
+                RoundedPosition       = RoundPosition();
+                CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
+                IsMovedToAnotherChunk = true;
+                Camera                = new Camera(cursorPosition);
+            }
+        }
+
+        [Newtonsoft.Json.JsonConstructor]
+        private Player(Vector3 position, Camera camera, Vector3i roundedPosition, Vector2i currentChunk, int selectedBlock)
+        {
+            Position        = position;
+            Camera          = camera;
+            RoundedPosition = roundedPosition;
+            CurrentChunk    = currentChunk;
+            SelectedBlock   = selectedBlock;
+        }
+
+        public static Player Load(string filepath, Vector2 mousePosition)
+        {
+            if (File.Exists(filepath))
+            {
+                var player = JsonConvert.DeserializeObject<Player>(File.ReadAllText(filepath));
+                return new Player(mousePosition, player);
+            }
+            else
+            {
+                return new Player(mousePosition);
+            }
         }
 
         public void KeyboardInput(KeyboardState input, float time)
@@ -82,15 +140,22 @@ namespace VoxelWorld.Entity
             }
 
             Position += direction * Speed * time;
+
             var newRoundedPosition = RoundPosition();
             if (RoundedPosition != newRoundedPosition)
             {
                 RoundedPosition = newRoundedPosition;
-                IsMoved = true;
+
+                var newCurrentChunk = ChunkManager.GetChunkPosition(newRoundedPosition.Xz);
+                if (CurrentChunk != newCurrentChunk)
+                {
+                    CurrentChunk = newCurrentChunk;
+                    IsMovedToAnotherChunk = true;
+                }
             }
             else
             {
-                IsMoved = false;
+                IsMovedToAnotherChunk = false;
             }
         }
 

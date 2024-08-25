@@ -17,7 +17,7 @@ namespace VoxelWorld.Managers
         }
 
         // this method can be easily broken (please don't do that)
-        public ImageResult GenerateTextureAtlas()
+        private ImageResult GenerateTextureAtlas()
         {
             var textures = Directory
                 .GetFiles("resources/textures/blocks", "*.*", SearchOption.TopDirectoryOnly)
@@ -57,12 +57,12 @@ namespace VoxelWorld.Managers
                     }
                 }
 
-                // 0.00001f - this prevents artifacts on the edges of textures
+                // 0.0001f - this prevents artifacts on the edges of textures
                 // when you can see the texture of another block or its absence.
-                float x1 = (float)xOffset / atlasWidth + 0.00001f;
-                float y1 = (float)yOffset / atlasHeight + 0.00001f;
-                float x2 = (float)(xOffset + texture.Width) / atlasWidth - 0.00001f;
-                float y2 = (float)(yOffset + texture.Height) / atlasHeight - 0.00001f;
+                float x1 = (float)xOffset / atlasWidth + 0.0001f;
+                float y1 = (float)yOffset / atlasHeight + 0.0001f;
+                float x2 = (float)(xOffset + texture.Width) / atlasWidth - 0.0001f;
+                float y2 = (float)(yOffset + texture.Height) / atlasHeight - 0.0001f;
 
                 Textures[file] = [x1, y1, x2, y2];
 

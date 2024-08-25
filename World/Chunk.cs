@@ -1,6 +1,8 @@
 ﻿using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
 
+using static FastNoiseLite;
+
 using VoxelWorld.Graphics;
 using VoxelWorld.Managers;
 using static VoxelWorld.World.Block;
@@ -10,8 +12,9 @@ namespace VoxelWorld.World
     public class Chunk
     {
         public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
-        private Block[] Blocks { get; set; }
         public Vector2i Position { get; }
+        public Block[] Blocks { get; set; }
+        public bool IsMeshCreated { get; set; }
 
         public Block this[Vector3i position]
         {
@@ -60,27 +63,56 @@ namespace VoxelWorld.World
             _indices    = [];
             _indexCount = 0;
 
-            for (int y = 0; y < Size.Y; y++)
+            IsMeshCreated = false;
+
+            var noise = new FastNoiseLite(ChunkManager.Instance.Seed);
+            noise.SetNoiseType(NoiseType.Perlin);
+            noise.SetFrequency(0.2f);
+            noise.SetFractalLacunarity(1.6f);
+            noise.SetFractalType(FractalType.FBm);
+            noise.SetFractalOctaves(6);
+
+            for (int x = 0; x < Size.X; x++)
             {
-                for (int x = 0; x < Size.X; x++)
+                for (int z = 0; z < Size.Z; z++)
                 {
-                    for (int z = 0; z < Size.Z; z++)
+                    float height = noise.GetNoise((position.X * Size.X + x) * 0.1f, (position.Y * Size.Z + z) * 0.1f) * 10f + 30f;
+
+                    for (int y = 0; y < Size.Y; y++)
                     {
-                        if (y > 28)
+                        // flat generation
+                        //if (y > 28)
+                        //{
+                        //    this[x, y, z] = new Block(0, x, y, z);
+                        //}
+                        //else if (y > 27)
+                        //{
+                        //    this[x, y, z] = new Block(3, x, y, z);
+                        //}
+                        //else if (y > 24)
+                        //{
+                        //    this[x, y, z] = new Block(2, x, y, z);
+                        //}
+                        //else
+                        //{
+                        //    this[x, y, z] = new Block(1, x, y, z);
+                        //}
+
+                        if (y == (int)height)
                         {
-                            this[x, y, z] = new Block(0, x, y, z);
+                            this[x, y, z] = new Block(3); // grass block
                         }
-                        else if (y > 27)
+                        else if (y < (int)height && y >= (int)height - 3)
                         {
-                            this[x, y, z] = new Block(3, x, y, z);
+                            this[x, y, z] = new Block(2); // dirt block
                         }
-                        else if (y > 24)
+                        else if (y < (int)height - 3)
                         {
-                            this[x, y, z] = new Block(2, x, y, z);
+                            this[x, y, z] = new Block(1); // stone block
                         }
                         else
                         {
-                            this[x, y, z] = new Block(1, x, y, z);
+                            this[x, y, z] = new Block(0); // air
                         }
                     }
                 }
@@ -91,6 +123,8 @@ namespace VoxelWorld.World
         /// </summary>
         public void CreateMesh()
         {
+            IsMeshCreated = true;
+
             // creating a mesh
             for (int y = 0; y < Size.Y; y++)
             {
@@ -163,30 +197,30 @@ namespace VoxelWorld.World
         /// <param name="currentBlock">Current block</param>
         private void SelectionOfFaces(int lx, int ly, int lz, Block currentBlock)
         {
-            IntegrateSideFaces(currentBlock, Face.Front, (lx, ly, lz + 1), Position + ( 0,  1), (lx, ly, 0));
-            IntegrateSideFaces(currentBlock, Face.Back,  (lx, ly, lz - 1), Position + ( 0, -1), (lx, ly, Size.Z - 1));
-            IntegrateSideFaces(currentBlock, Face.Left,  (lx - 1, ly, lz), Position + (-1,  0), (Size.X - 1, ly, lz));
-            IntegrateSideFaces(currentBlock, Face.Right, (lx + 1, ly, lz), Position + ( 1,  0), (0, ly, lz));
-            IntegrateTopBottomFaces(currentBlock, lx, ly, lz);
+            IntegrateSideFaces(lx, ly, lz, currentBlock, Face.Front, (lx, ly, lz + 1), Position + ( 0,  1), (lx, ly, 0));
+            IntegrateSideFaces(lx, ly, lz, currentBlock, Face.Back,  (lx, ly, lz - 1), Position + ( 0, -1), (lx, ly, Size.Z - 1));
+            IntegrateSideFaces(lx, ly, lz, currentBlock, Face.Left,  (lx - 1, ly, lz), Position + (-1,  0), (Size.X - 1, ly, lz));
+            IntegrateSideFaces(lx, ly, lz, currentBlock, Face.Right, (lx + 1, ly, lz), Position + ( 1,  0), (0, ly, lz));
+            IntegrateTopBottomFaces(lx, ly, lz, currentBlock);
         }
         /// <summary>
         /// Adds side faces to a chunk.
         /// </summary>
         /// <param name="currentBlock">Current block</param>
         /// <param name="face">Face</param>
-        /// <param name="nextBlock">Next block</param>
+        /// <param name="nextBlockPosition">Next block</param>
         /// <param name="chunkOffset">Coordinates of the neighboring chunk</param>
         /// <param name="borderBlock">Coordinates of the outermost block in the chunk</param>
-        private void IntegrateSideFaces(Block currentBlock, Face face, Vector3i nextBlock, Vector2i chunkOffset, Vector3i borderBlock)
+        private void IntegrateSideFaces(int lx, int ly, int lz, Block currentBlock, Face face, Vector3i nextBlockPosition, Vector2i chunkOffset, Vector3i borderBlock)
         {
-            if ((face is Face.Front && currentBlock.Position.Z < Size.Z - 1) ||
-                (face is Face.Back  && currentBlock.Position.Z > 0) ||
-                (face is Face.Left  && currentBlock.Position.X > 0) ||
-                (face is Face.Right && currentBlock.Position.X < Size.X - 1))
+            if ((face is Face.Front && lz < Size.Z - 1) ||
+                (face is Face.Back  && lz > 0) ||
+                (face is Face.Left  && lx > 0) ||
+                (face is Face.Right && lx < Size.X - 1))
             {
-                if (TryGetBlock(nextBlock, out var block) && IsFaceIntegrable(block, currentBlock))
+                if (TryGetBlock(nextBlockPosition, out var block) && IsFaceIntegrable(block, currentBlock))
                 {
-                    IntegrateFaceIntoChunk(currentBlock, face);
+                    IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, face);
                 }
             }
             else
@@ -198,7 +232,7 @@ namespace VoxelWorld.World
                 if (!chunk.TryGetBlock(borderBlock, out var block) ||
                     IsFaceIntegrable(block, currentBlock))
                 {
-                    IntegrateFaceIntoChunk(currentBlock, face);
+                    IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, face);
                 }
             }
         }
@@ -209,28 +243,28 @@ namespace VoxelWorld.World
         /// <param name="lx">Local coordinate X of the block</param>
         /// <param name="ly">Local coordinate Y of the block</param>
         /// <param name="lz">Local coordinate Z of the block</param>
-        private void IntegrateTopBottomFaces(Block currentBlock, int lx, int ly, int lz)
+        private void IntegrateTopBottomFaces(int lx, int ly, int lz, Block currentBlock)
         {
             // top face
             TryGetBlock(lx, ly + 1, lz, out var nextBlock);
             if (ly < Size.Y - 1 && IsFaceIntegrable(nextBlock, currentBlock))
             {
-                IntegrateFaceIntoChunk(currentBlock, Face.Top);
+                IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, Face.Top);
             }
             else if (ly >= Size.Y - 1)
             {
-                IntegrateFaceIntoChunk(currentBlock, Face.Top);
+                IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, Face.Top);
             }
 
             // bottom face
             TryGetBlock(lx, ly - 1, lz, out nextBlock);
             if (ly > 0 && IsFaceIntegrable(nextBlock, currentBlock))
             {
-                IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
+                IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, Face.Bottom);
             }
             else if (ly < 0) // NOTE: if you need to render the bottom face of the chunk, replace < with the <=
             {
-                IntegrateFaceIntoChunk(currentBlock, Face.Bottom);
+                IntegrateFaceIntoChunk(lx, ly, lz, currentBlock, Face.Bottom);
             }
         }
         /// <summary>
@@ -251,12 +285,12 @@ namespace VoxelWorld.World
         /// </summary>
         /// <param name="block">Block</param>
         /// <param name="face">Face</param>
-        private void IntegrateFaceIntoChunk(Block block, Face face)
+        private void IntegrateFaceIntoChunk(int lx, int ly, int lz, Block block, Face face)
         {
-            _vertices.AddRange(TransformedVertices(block.Position, face));
+            _vertices.AddRange(TransformedVertices(lx, ly, lz, face));
             _uvs.AddRange(GetBlockUV(block.ID, face));
 
-            var wb = ConvertLocalToWorld(block.Position);
+            var wb = ConvertLocalToWorld(lx, ly, lz);
 
             float brightness;
             float lr, lr0, lr1, lr2, lr3;
@@ -489,9 +523,9 @@ namespace VoxelWorld.World
         /// <param name="position">Block position</param>
         /// <param name="face">Block face</param>
         /// <returns>Coordinates of block face vertices.<Vector3> </returns>
-        private static List<Vector3> TransformedVertices(Vector3i position, Face face) =>
+        private static List<Vector3> TransformedVertices(int lx, int ly, int lz, Face face) =>
             GetBlockVertices(face)
-                .Select(vertex => vertex + position)
+                .Select(vertex => vertex + (lx, ly, lz))
                 .ToList();
         /// <summary>
         /// Fills Indices with values.
@@ -549,10 +583,10 @@ namespace VoxelWorld.World
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="position"></param>
+        /// <param name="lb"></param>
         /// <returns></returns>
-        public static int GetIndex(Vector3i position) =>
-            position.X + (position.Y * Size.X) + (position.Z * Size.X * Size.Y);
+        public static int GetIndex(Vector3i lb) =>
+            lb.X + (lb.Y * Size.X) + (lb.Z * Size.X * Size.Y);
         /// <summary>
         /// Converts local block coordinates to world coordinates.
         /// </summary>

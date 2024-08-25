@@ -171,7 +171,7 @@ namespace VoxelWorld.Graphics.Renderer
                     {
                         int light = ChunkManager.GetLight(x, y, z, Channel);
 
-                        if (block.IsLightPassing is true && light + 1 < item.W)
+                        if (block.IsLightPassing && light + 1 < item.W)
                         {
                             AddQueue.Enqueue((x, y, z, item.W - 1));
                             ChunkManager.SetLight(x, y, z, Channel, item.W - 1);
