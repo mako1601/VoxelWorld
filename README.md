@@ -2,7 +2,7 @@
 
 VoxelWorld is a project in which I study 3D graphics based on Minecraft, but with some improvements that, in my opinion, could make the original game even better.
 
-![image](https://github.com/user-attachments/assets/119eb8f8-fc9d-4f16-bc95-0e5871ffd6ed)
+![image](https://github.com/user-attachments/assets/f833ee66-bc3f-408e-a161-f082867ec600)
 ![image](https://github.com/user-attachments/assets/60335d11-ad47-43a3-83b5-55e434f10083)
 
 # Controls:
@@ -32,8 +32,8 @@ VoxelWorld is a project in which I study 3D graphics based on Minecraft, but wit
   - [x] Chunks system
   - [ ] Collision
   - [ ] Physics
-  - [ ] Procedural world generation
-  - [ ] Endless world
+  - [x] Procedural world generation
+  - [x] Endless world
 - [ ] Shaders:
   - [x] Shadows
   - [x] Ambient Occlusion
