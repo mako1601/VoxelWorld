@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using VoxelWorld.Managers;
@@ -96,7 +95,7 @@ namespace VoxelWorld.Entity
         {
             if (File.Exists(filepath))
             {
-                var player = JsonConvert.DeserializeObject<Player>(File.ReadAllText(filepath));
+                var player = Newtonsoft.Json.JsonConvert.DeserializeObject<Player>(File.ReadAllText(filepath));
                 return new Player(mousePosition, player);
             }
             else

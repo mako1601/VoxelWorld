@@ -27,10 +27,8 @@ namespace VoxelWorld.Managers
         public LightSolver SolverB { get; private set; }
         public LightSolver SolverS { get; private set; }
 
-        public Queue<Vector2i> AddChunkQueue { get; private set; }
-        public Queue<Vector2i> RemoveChunkQueue { get; private set; }
-        public Queue<Vector2i> AddLightmapQueue { get; private set; }
-        public Queue<Vector2i> RemoveLightmapQueue { get; private set; }
+        public Queue<Vector2i> AddQueue { get; private set; }
+        public Queue<Vector2i> RemoveQueue { get; private set; }
         public HashSet<Vector2i> UpdateMesh { get; set; }
         public HashSet<Vector2i> VisibleChunks { get; private set; }
 
@@ -41,7 +39,8 @@ namespace VoxelWorld.Managers
         /// <summary>
         /// Default value is 12.
         /// </summary>
-        public static byte RenderDistance { get; set; } = 8;
+        public static byte RenderDistance { get; set; } = 6;
+        public static byte RegionSize { get; } = 32;
 
         private ChunkManager()
         {
@@ -57,10 +56,8 @@ namespace VoxelWorld.Managers
             SolverB = new LightSolver(2);
             SolverS = new LightSolver(3);
 
-            AddChunkQueue       = [];
-            RemoveChunkQueue    = [];
-            AddLightmapQueue    = [];
-            RemoveLightmapQueue = [];
+            AddQueue    = [];
+            RemoveQueue = [];
 
             UpdateMesh    = [];
             VisibleChunks = [];
@@ -86,30 +83,35 @@ namespace VoxelWorld.Managers
             // adding new
             foreach (var position in visibleChunks)
             {
-                if (Chunks.TryAdd(position, null))
+                if (!Chunks.ContainsKey(position))
                 {
-                    AddChunkQueue.Enqueue(position);
-                }
-                if (Lightmaps.TryAdd(position, null))
-                {
-                    AddLightmapQueue.Enqueue(position);
+                    var (chunk, lightmap) = ReadChunk(position);
 
-                    // re-mesh an existing one to avoid holes in the mesh
-                    if (Chunks.TryGetValue(position + (1, 0), out var chunk) && chunk is not null && chunk.IsMeshCreated is true)
+                    if (chunk is null)
                     {
-                        UpdateMesh.Add(position + (1, 0));
+                        AddQueue.Enqueue(position);
                     }
-                    if (Chunks.TryGetValue(position + (-1, 0), out chunk) && chunk is not null && chunk.IsMeshCreated is true)
+                    else
                     {
-                        UpdateMesh.Add(position + (-1, 0));
-                    }
-                    if (Chunks.TryGetValue(position + (0, 1), out chunk) && chunk is not null && chunk.IsMeshCreated is true)
-                    {
-                        UpdateMesh.Add(position + (0, 1));
-                    }
-                    if (Chunks.TryGetValue(position + (0, -1), out chunk) && chunk is not null && chunk.IsMeshCreated is true)
-                    {
-                        UpdateMesh.Add(position + (0, -1));
+                        Chunks[position] = chunk;
+
+                        if (lightmap is null)
+                        {
+                            Lightmaps[position] = new(position);
+
+                            Lightmaps[position]!.Create();
+
+                            SolverR.Solve();
+                            SolverG.Solve();
+                            SolverB.Solve();
+                            SolverS.Solve();
+                        }
+                        else
+                        {
+                            Lightmaps[position] = lightmap;
+                        }
+
+                        UpdateMesh.Add(position);
                     }
                 }
             }
@@ -119,23 +121,18 @@ namespace VoxelWorld.Managers
             {
                 if (!VisibleChunks.Contains(position))
                 {
-                    RemoveChunkQueue.Enqueue(position);
-                    RemoveLightmapQueue.Enqueue(position);
+                    RemoveQueue.Enqueue(position);
                     UpdateMesh.Remove(position);
                 }
             }
         }
         public void CreateChunk()
         {
-            if (AddChunkQueue.Count > 0)
+            if (AddQueue.Count > 0)
             {
-                var c = AddChunkQueue.Dequeue();
-                Chunks[c] = new(c);
-            }
-            if (AddLightmapQueue.Count > 0)
-            {
-                var c = AddLightmapQueue.Dequeue();
+                var c = AddQueue.Dequeue();
 
+                Chunks[c] = new(c);
                 Lightmaps[c] = new(c);
 
                 Lightmaps[c]!.Create();
@@ -150,22 +147,18 @@ namespace VoxelWorld.Managers
         }
         public void RemoveChunk()
         {
-            if (RemoveChunkQueue.Count > 0)
+            if (RemoveQueue.Count > 0)
             {
-                var c = RemoveChunkQueue.Dequeue();
-                Chunks.TryGetValue(c, out var chunk);
-                if (chunk is null) return;
-                // here is a save to memory
-                Chunks[c].Delete();
-                Chunks.Remove(c);
-            }
-            if (RemoveLightmapQueue.Count > 0)
-            {
-                var c = RemoveLightmapQueue.Dequeue();
-                Lightmaps.TryGetValue(c, out var lightmap);
-                if (lightmap is null) return;
-                // here is a save to memory
-                Lightmaps.Remove(c);
+                var c = RemoveQueue.Dequeue();
+                if (Chunks.TryGetValue(c, out var chunk) && chunk is not null &&
+                    Lightmaps.TryGetValue(c, out var lightmap) && lightmap is not null)
+                {
+                    WriteChunk(chunk, lightmap);
+            
+                    Chunks[c].Delete();
+                    Chunks.Remove(c);
+                    Lightmaps.Remove(c);
+                }
             }
         }
         /// <summary>
@@ -194,10 +187,10 @@ namespace VoxelWorld.Managers
             Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
 
-            foreach (var chunk in Chunks)
+            foreach (var (position, chunk) in Chunks)
             {
-                Shader.SetMatrix4("uModel", Matrix4.CreateTranslation(chunk.Key.X * Chunk.Size.X, 0f, chunk.Key.Y * Chunk.Size.Z));
-                chunk.Value?.Draw();
+                Shader.SetMatrix4("uModel", Matrix4.CreateTranslation(position.X * Chunk.Size.X, 0f, position.Y * Chunk.Size.Z));
+                chunk?.Draw();
             }
 
             Disable(EnableCap.CullFace);
@@ -211,12 +204,15 @@ namespace VoxelWorld.Managers
             TextureAtlas.Delete();
 
             File.WriteAllTextAsync("saves/world/world.json", Newtonsoft.Json.JsonConvert.SerializeObject(Seed, Newtonsoft.Json.Formatting.Indented));
-            SaveChunksToMemory(Chunks, "saves/world/chunks.bin");
-            SaveLightmapsToMemory(Lightmaps, "saves/world/lightmaps.bin");
 
-            foreach (var chunk in Chunks)
+            foreach (var (position, chunk) in Chunks)
             {
-                chunk.Value.Delete();
+                WriteChunk(chunk, Lightmaps[position]);
+            }
+
+            foreach (var (_, chunk) in Chunks)
+            {
+                chunk.Delete();
             }
 
             Shader.Delete();
@@ -256,6 +252,9 @@ namespace VoxelWorld.Managers
                 }
             }
         }
+
+        #region Blocks
+
         /// <summary>
         /// Gets the Block by its world coordinates of the block.
         /// </summary>
@@ -334,6 +333,8 @@ namespace VoxelWorld.Managers
             Instance.Chunks[c].UpdateMesh();
             UpdateNearestChunks(c);
         }
+
+        #endregion Blocks
 
         #region Light
 
@@ -546,11 +547,8 @@ namespace VoxelWorld.Managers
 
         #endregion Light
 
-        #region Load&Save
+        #region Read&Write
 
-        /// <summary>
-        /// 
-        /// </summary>
         public void Load(Vector2i currentChunk)
         {
             for (int x = -RenderDistance + currentChunk.X; x <= RenderDistance + currentChunk.X; x++)
@@ -560,33 +558,26 @@ namespace VoxelWorld.Managers
                     VisibleChunks.Add((x, z));
                 }
             }
-            var filepath = "saves/world/chunks.bin";
 
-            if (File.Exists(filepath))
+            foreach (var position in VisibleChunks)
             {
-                foreach (var (position, chunk) in LoadChunksFromMemory(filepath))
+                var (chunk, lightmap) = ReadChunk(position);
+                if (chunk is not null)
                 {
-                    if (VisibleChunks.Contains(position))
-                    {
-                        Chunks.Add(position, chunk);
-                    }
+                    Chunks[position] = chunk;
+                }
+                else
+                {
+                    AddQueue.Enqueue(position);
+                }
+                if (lightmap is not null)
+                {
+                    Lightmaps[position] = lightmap;
+                    UpdateMesh.Add(position);
                 }
             }
 
-            filepath = "saves/world/lightmaps.bin";
-            if (File.Exists(filepath))
-            {
-                foreach (var (position, lightmap) in LoadLightmapsFromMemory(filepath))
-                {
-                    if (VisibleChunks.Contains(position))
-                    {
-                        Lightmaps.Add(position, lightmap);
-                        UpdateMesh.Add(position);
-                    }
-                }
-            }
-
-            filepath = "saves/world/world.json";
+            string filepath = "saves/world/world.json";
             // so far, there is only one parameter, this is a reserve for future expansion
             if (File.Exists(filepath))
             {
@@ -598,112 +589,98 @@ namespace VoxelWorld.Managers
                 Seed = random.Next(Int32.MinValue, Int32.MaxValue);
             }
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public static Dictionary<Vector2i, Chunk> LoadChunksFromMemory(string filepath)
-        {
-            Dictionary<Vector2i, Chunk> chunks = [];
 
-            using var fs  = new FileStream(filepath, FileMode.Open, FileAccess.Read);
-            using var gzs = new GZipStream(fs, CompressionMode.Decompress);
-            using var br  = new BinaryReader(gzs);
-
-            int chunkCount = br.ReadInt32();
-
-            for (int i = 0; i < chunkCount; i++)
-            {
-                Vector2i position = (br.ReadInt32(), br.ReadInt32());
-                int compressedBlockCount = br.ReadInt32();
-                List<Vector2i> compressedBlocks = [];
-
-                for (int j = 0; j < compressedBlockCount; j++)
-                {
-                    compressedBlocks.Add((br.ReadInt32(), br.ReadInt32()));
-                }
-
-                Chunk chunk = new(position)
-                {
-                    Blocks = DecompressBlocks(compressedBlocks)
-                };
-
-                chunks[position] = chunk;
-            }
-
-            return chunks;
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="chunks"></param>
-        public static void SaveChunksToMemory(Dictionary<Vector2i, Chunk> chunks, string filepath)
+        public static (Chunk?, Lightmap?) ReadChunk(Vector2i chunkPosition)
         {
             if (!Directory.Exists("saves/world")) Directory.CreateDirectory("saves/world");
 
-            using var fs  = new FileStream(filepath, FileMode.Create, FileAccess.Write);
-            using var gzs = new GZipStream(fs, CompressionLevel.SmallestSize);
-            using var bw  = new BinaryWriter(gzs);
+            Vector2i regionPosition = (chunkPosition.X >> 5, chunkPosition.Y >> 5);
+            var filepath = $"saves/world/region_{regionPosition.X}_{regionPosition.Y}.bin";
 
-            bw.Write(chunks.Count);
+            if (!File.Exists(filepath)) return (null, null);
 
-            foreach (var (position, chunk) in chunks)
-            {
-                bw.Write(position.X);
-                bw.Write(position.Y);
+            int index = chunkPosition.X - (regionPosition.X << 5) + (chunkPosition.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
 
-                var compressedBlocks = CompressBlocks(chunk.Blocks);
-                bw.Write(compressedBlocks.Count);
+            using var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read);
 
-                foreach (var (id, count) in compressedBlocks)
-                {
-                    bw.Write(id);
-                    bw.Write(count);
-                }
-            }
+            // chunk
+            var dataLength = new byte[4];
+            fs.Seek(index * 4096, SeekOrigin.Begin); // 4096 - max size of the chunk data in bytes
+            fs.Read(dataLength, 0, 4);
+            int length = BitConverter.ToInt32(dataLength);
+
+            if (length == 0) return (null, null);
+
+            var compressedData = new byte[length];
+            fs.Read(compressedData, 0, length);
+            var chunk = new Chunk(chunkPosition) { Blocks = DecompressRLEBlocks(DecompressGZip(compressedData)) };
+
+            // lightmap
+            fs.Read(dataLength, 0, 4);
+            length = BitConverter.ToInt32(dataLength);
+
+            if (length == 0) return (chunk, null);
+
+            compressedData = new byte[length];
+            fs.Read(compressedData, 0, length);
+            var lightmap = new Lightmap(chunkPosition) { Map = DecompressRLELightmap(DecompressGZip(compressedData)) };
+
+            return (chunk, lightmap);
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="blocks"></param>
-        /// <returns></returns>
-        private static List<Vector2i> CompressBlocks(Block[] blocks)
+
+        public static void WriteChunk(Chunk chunk, Lightmap lightmap)
         {
-            List<Vector2i> compressedData = [];
+            if (!Directory.Exists("saves/world")) Directory.CreateDirectory("saves/world");
 
-            int currentID = blocks[0].ID;
-            int count = 1;
+            Vector2i regionPosition = (chunk.Position.X >> 5, chunk.Position.Y >> 5);
+            var filepath = $"saves/world/region_{regionPosition.X}_{regionPosition.Y}.bin";
+            int index = chunk.Position.X - (regionPosition.X << 5) + (chunk.Position.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
 
-            for (int i = count; i < blocks.Length; i++)
-            {
-                if (blocks[i].ID == currentID)
-                {
-                    count++;
-                }
-                else
-                {
-                    compressedData.Add((currentID, count));
-                    currentID = blocks[i].ID;
-                    count = 1;
-                }
-            }
+            using var fs = new FileStream(filepath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
-            compressedData.Add((currentID, count));
+            fs.Seek(index * 4096, SeekOrigin.Begin); // 4096 - max size of the chunk data in bytes
 
-            return compressedData;
+            byte[] compressedBlocks = CompressGZip(CompressRLEBlocks(chunk.Blocks));
+
+            byte[] chunkData = new byte[compressedBlocks.Length + 4]; // 4 bytes for the size of the chunk data
+            BitConverter.GetBytes(compressedBlocks.Length).CopyTo(chunkData, 0);
+            Array.Copy(compressedBlocks, 0, chunkData, 4, compressedBlocks.Length);
+
+            fs.Write(chunkData, 0, chunkData.Length);
+
+            byte[] compressedLightmap = CompressGZip(CompressRLELightmap(lightmap.Map));
+
+            byte[] lightmapData = new byte[compressedLightmap.Length + 4]; // 4 bytes for the size of the chunk data
+            BitConverter.GetBytes(compressedLightmap.Length).CopyTo(lightmapData, 0);
+            Array.Copy(compressedLightmap, 0, lightmapData, 4, compressedLightmap.Length);
+
+            fs.Write(lightmapData, 0, lightmapData.Length);
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="compressedData"></param>
-        /// <returns></returns>
-        private static Block[] DecompressBlocks(List<Vector2i> compressedData)
+
+        private static byte[] DecompressGZip(byte[] compressedData)
         {
+            using var ms    = new MemoryStream(compressedData);
+            using var gzs   = new GZipStream(ms, CompressionMode.Decompress);
+            using var outms = new MemoryStream();
+
+            gzs.CopyTo(outms);
+
+            return outms.ToArray();
+        }
+
+        private static Block[] DecompressRLEBlocks(byte[] compressedBlocks)
+        {
+            using var ms = new MemoryStream(compressedBlocks);
+            using var br = new BinaryReader(ms);
+
             var blocks = new Block[Chunk.Size.X * Chunk.Size.Y * Chunk.Size.Z];
             int index = 0;
 
-            foreach (var (id, count) in compressedData)
+            while (index < blocks.Length)
             {
+                int id = br.ReadInt32();
+                int count = br.ReadInt32();
+
                 for (int i = 0; i < count; i++)
                 {
                     blocks[index++] = new Block(id);
@@ -713,94 +690,19 @@ namespace VoxelWorld.Managers
             return blocks;
         }
 
-        public static Dictionary<Vector2i, Lightmap> LoadLightmapsFromMemory(string filepath)
+        private static ushort[] DecompressRLELightmap(byte[] compressedLightmap)
         {
-            Dictionary<Vector2i, Lightmap> lightmaps = [];
+            using var ms = new MemoryStream(compressedLightmap);
+            using var br = new BinaryReader(ms);
 
-            using var fs  = new FileStream(filepath, FileMode.Open, FileAccess.Read);
-            using var gzs = new GZipStream(fs, CompressionMode.Decompress);
-            using var br  = new BinaryReader(gzs);
-
-            int lightmapCount = br.ReadInt32();
-
-            for (int i = 0; i < lightmapCount; i++)
-            {
-                Vector2i position = (br.ReadInt32(), br.ReadInt32());
-                int compressedLightmapCount = br.ReadInt32();
-                List<(ushort, int)> compressedLightmaps = [];
-
-                for (int j = 0; j < compressedLightmapCount; j++)
-                {
-                    compressedLightmaps.Add((br.ReadUInt16(), br.ReadInt32()));
-                }
-
-                Lightmap lightmap = new(position)
-                {
-                    Map = DecompressLightmap(compressedLightmaps)
-                };
-
-                lightmaps[position] = lightmap;
-            }
-
-            return lightmaps;
-        }
-        public static void SaveLightmapsToMemory(Dictionary<Vector2i, Lightmap> lightmaps, string filepath)
-        {
-            if (!Directory.Exists("saves/world")) Directory.CreateDirectory("saves/world");
-
-            using var fs  = new FileStream(filepath, FileMode.Create, FileAccess.Write);
-            using var gzs = new GZipStream(fs, CompressionLevel.SmallestSize);
-            using var bw  = new BinaryWriter(gzs);
-
-            bw.Write(lightmaps.Count);
-
-            foreach (var (position, lightmap) in lightmaps)
-            {
-                bw.Write(position.X);
-                bw.Write(position.Y);
-
-                var compressedLightmap = CompressLightmap(lightmap.Map);
-                bw.Write(compressedLightmap.Count);
-
-                foreach (var (light, count) in compressedLightmap)
-                {
-                    bw.Write(light);
-                    bw.Write(count);
-                }
-            }
-        }
-        private static List<(ushort, int)> CompressLightmap(ushort[] lightmap)
-        {
-            List<(ushort, int)> compressedData = [];
-
-            ushort light = lightmap[0];
-            int count = 1;
-
-            for (int i = count; i < lightmap.Length; i++)
-            {
-                if (lightmap[i] == light)
-                {
-                    count++;
-                }
-                else
-                {
-                    compressedData.Add((light, count));
-                    light = lightmap[i];
-                    count = 1;
-                }
-            }
-
-            compressedData.Add((light, count));
-
-            return compressedData;
-        }
-        private static ushort[] DecompressLightmap(List<(ushort, int)> compressedData)
-        {
             var lightmap = new ushort[Chunk.Size.X * Chunk.Size.Y * Chunk.Size.Z];
             int index = 0;
 
-            foreach (var (light, count) in compressedData)
+            while(index < lightmap.Length)
             {
+                ushort light = br.ReadUInt16();
+                int count = br.ReadInt32();
+
                 for (int i = 0; i < count; i++)
                 {
                     lightmap[index++] = light;
@@ -810,7 +712,75 @@ namespace VoxelWorld.Managers
             return lightmap;
         }
 
-        #endregion Load&Save
+        private static byte[] CompressGZip(byte[] data)
+        {
+            using var ms = new MemoryStream();
+            using (var gzs = new GZipStream(ms, CompressionMode.Compress))
+            {
+                gzs.Write(data, 0, data.Length);
+            }
+            return ms.ToArray();
+        }
+
+        private static byte[] CompressRLEBlocks(Block[] blocks)
+        {
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+        
+            int currentID = blocks[0].ID;
+            int count = 1;
+        
+            for (int i = count; i < blocks.Length; i++)
+            {
+                if (blocks[i].ID == currentID)
+                {
+                    count++;
+                }
+                else
+                {
+                    bw.Write(currentID);
+                    bw.Write(count);
+                    currentID = blocks[i].ID;
+                    count = 1;
+                }
+            }
+        
+            bw.Write(currentID);
+            bw.Write(count);
+        
+            return ms.ToArray();
+        }
+
+        private static byte[] CompressRLELightmap(ushort[] lightmap)
+        {
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+
+            ushort currentLight = lightmap[0];
+            int count = 1;
+
+            for (int i = count; i < lightmap.Length; i++)
+            {
+                if (lightmap[i] == currentLight)
+                {
+                    count++;
+                }
+                else
+                {
+                    bw.Write(currentLight);
+                    bw.Write(count);
+                    currentLight = lightmap[i];
+                    count = 1;
+                }
+            }
+
+            bw.Write(currentLight);
+            bw.Write(count);
+
+            return ms.ToArray();
+        }
+
+        #endregion Read&Write
 
         #region Inline
 
@@ -830,6 +800,14 @@ namespace VoxelWorld.Managers
         public static Vector2i GetChunkPosition(int wx, int wz) =>
             ((int)Math.Floor((float)wx / Chunk.Size.X), (int)Math.Floor((float)wz / Chunk.Size.Z));
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="chunkA"></param>
+        /// <param name="chunkB"></param>
+        /// <returns></returns>
+        public static double GetDistance(Vector2i chunkA, Vector2i chunkB) =>
+            Math.Sqrt((chunkA.X - chunkB.X) * (chunkA.X - chunkB.X) + (chunkA.Y - chunkB.Y) * (chunkA.Y - chunkB.Y));
+        /// <summary>
         /// Converts the world coordinates of the block to local coordinates within the chunk.
         /// </summary>
         /// <param name="wb">World coordinates of the block</param>
@@ -847,15 +825,7 @@ namespace VoxelWorld.Managers
         /// <returns>The vector of the block's local coordinates.</returns>
         public static Vector3i ConvertWorldToLocal(int wx, int wy, int wz, Vector2i c) =>
             (wx - c.X * Chunk.Size.X, wy, wz - c.Y * Chunk.Size.Z);
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="chunkA"></param>
-        /// <param name="chunkB"></param>
-        /// <returns></returns>
-        public static double GetDistance(Vector2i chunkA, Vector2i chunkB) =>
-            Math.Sqrt((chunkA.X - chunkB.X) * (chunkA.X - chunkB.X) + (chunkA.Y - chunkB.Y) * (chunkA.Y - chunkB.Y));
-
+        
         #endregion Inline
     }
 }

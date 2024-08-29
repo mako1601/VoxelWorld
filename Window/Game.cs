@@ -74,7 +74,7 @@ namespace VoxelWorld.Window
                     MinimumClientSize = (480, 360),
                     // MaximumClientSize
                     // AspectRatio
-                    //NumberOfSamples = 16, // MSAA x2, x4, x8, x16
+                    //NumberOfSamples = 2, // MSAA x2, x4, x8, x16
                     // TransparentFramebuffer
                     //Vsync = VSyncMode.On,
                     // AutoIconify
@@ -109,9 +109,7 @@ namespace VoxelWorld.Window
         {
             base.OnUpdateFrame(args);
 
-            if (ChunkManager.Instance.AddChunkQueue.Count == 0 &&
-                ChunkManager.Instance.AddLightmapQueue.Count == 0 &&
-                ChunkManager.Instance.UpdateMesh.Count > 0)
+            if (ChunkManager.Instance.AddQueue.Count == 0 && ChunkManager.Instance.UpdateMesh.Count > 0)
             {
                 ChunkManager.Instance.UpdateMesh = [.. ChunkManager.Instance.UpdateMesh.OrderBy(chunk => ChunkManager.GetDistance(Player.CurrentChunk, chunk))];
                 var c = ChunkManager.Instance.UpdateMesh.First();
@@ -139,8 +137,7 @@ namespace VoxelWorld.Window
                 FPS = FrameCount * 5;
                 System.Diagnostics.Process curPorcess = System.Diagnostics.Process.GetCurrentProcess();
                 Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
-                    + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb "
-                    + $"Threads count: {curPorcess.Threads.Count}";
+                    + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
                 curPorcess.Dispose();
                 FrameCount = 0;
                 Timer -= 0.2;

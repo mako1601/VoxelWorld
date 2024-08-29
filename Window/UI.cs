@@ -121,8 +121,9 @@ namespace VoxelWorld.Window
             DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block} {info.Player.Camera.Ray.Position}", 5f, 180f, 0.5f);
             DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 200f, 0.5f);
             DrawLine($"Light RGBS: {ChunkManager.GetLight(info.Player.RoundedPosition):X4}", 5f, 220f, 0.5f);
-            DrawLine($"Number of rendered Chunks: {ChunkManager.Instance.Chunks.Count}", 5f, 240f, 0.5f);
-            DrawLine($"Chunks in Queue: {ChunkManager.Instance.AddChunkQueue.Count}", 5f, 260f, 0.5f);
+            DrawLine($"Number of rendered Chunks: {ChunkManager.Instance.Chunks.Count}", 5f, 260f, 0.5f);
+            DrawLine($"Chunks in Queue for Landscape generation: {ChunkManager.Instance.AddQueue.Count}", 5f, 280f, 0.5f);
+            DrawLine($"Chunks in Queue for Mesh generation: {ChunkManager.Instance.UpdateMesh.Count}", 5f, 300f, 0.5f);
 
             Disable(EnableCap.Blend);
         }
