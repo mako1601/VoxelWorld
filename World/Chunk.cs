@@ -11,7 +11,7 @@ namespace VoxelWorld.World
 {
     public class Chunk
     {
-        public static Vector3i Size { get; } = new Vector3i(16, 256, 16);
+        public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
         public Vector2i Position { get; }
         public Block[] Blocks { get; set; }
         public bool IsMeshCreated { get; set; }
