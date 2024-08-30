@@ -84,12 +84,12 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Delete()
         {
-            _ebo.Delete();
-            _vboBrightness.Delete();
-            _vboUV.Delete();
-            _vboVertices.Delete();
-            _vao.Delete();
-            _shader.Delete();
+            _ebo.Dispose();
+            _vboBrightness.Dispose();
+            _vboUV.Dispose();
+            _vboVertices.Dispose();
+            _vao.Dispose();
+            _shader.Dispose();
         }
 
         private static readonly List<Vector3> _vertices =

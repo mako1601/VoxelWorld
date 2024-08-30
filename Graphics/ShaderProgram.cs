@@ -4,9 +4,10 @@ using static OpenTK.Graphics.OpenGL.GL;
 
 namespace VoxelWorld.Graphics
 {
-    public class ShaderProgram : IGraphicsObject
+    public class ShaderProgram : IGraphicsObject, IDisposable
     {
-        public int ID { get; set; }
+        private bool _disposed = false;
+        public int ID { get; private set; }
 
         public ShaderProgram(string vertexShaderFilename, string fragmentShaderFilename)
         {
@@ -34,7 +35,14 @@ namespace VoxelWorld.Graphics
 
         public void Bind() => UseProgram(ID);
         public void Unbind() => UseProgram(0);
-        public void Delete() => DeleteProgram(ID);
+        private void Delete()
+        {
+            if (ID != 0)
+            {
+                DeleteProgram(ID);
+                ID = 0;
+            }
+        }
 
         public void SetBool(string name, bool value) =>
             Uniform1i(GetUniformLocation(ID, name), value ? 1 : 0);
@@ -110,5 +118,26 @@ namespace VoxelWorld.Graphics
                 }
             }
         }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+            }
+
+            Delete();
+
+            _disposed = true;
+        }
+
+        ~ShaderProgram() => Dispose(false);
     }
 }

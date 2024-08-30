@@ -3,9 +3,10 @@ using static OpenTK.Graphics.OpenGL.VertexAttribPointerType;
 
 namespace VoxelWorld.Graphics
 {
-    public class VAO : IGraphicsObject
+    public class VAO : IGraphicsObject, IDisposable
     {
-        public int ID { get; set; }
+        private bool _disposed = false;
+        public int ID { get; private set; }
 
         public VAO()
         {
@@ -21,6 +22,34 @@ namespace VoxelWorld.Graphics
 
         public void Bind() => BindVertexArray(ID);
         public void Unbind() => BindVertexArray(0);
-        public void Delete() => DeleteVertexArray(ID);
+        private void Delete()
+        {
+            if (ID != 0)
+            {
+                DeleteVertexArray(ID);
+                ID = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+            }
+
+            Delete();
+
+            _disposed = true;
+        }
+
+        ~VAO() => Dispose(false);
     }
 }

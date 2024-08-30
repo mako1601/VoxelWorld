@@ -92,10 +92,10 @@ namespace VoxelWorld.Graphics.Renderer
         public void Delete()
         {
             DeleteTexture(_texture);
-            _ebo.Delete();
-            _vbo.Delete();
-            _vao.Delete();
-            _shader.Delete();
+            _ebo.Dispose();
+            _vbo.Dispose();
+            _vao.Dispose();
+            _shader.Dispose();
         }
 
         private static readonly List<string> _skyboxPaths =

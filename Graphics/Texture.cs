@@ -6,9 +6,10 @@ using StbImageSharp;
 
 namespace VoxelWorld.Graphics
 {
-    public class Texture : IGraphicsObject
+    public class Texture : IGraphicsObject, IDisposable
     {
-        public int ID { get; set; }
+        private bool _disposed = false;
+        public int ID { get; private set; }
 
         public Texture(string filename, bool mipmap = true, int mipmapLevels = 4)
         {
@@ -88,6 +89,34 @@ namespace VoxelWorld.Graphics
 
         public void Bind() => BindTexture(Texture2d, ID);
         public void Unbind() => BindTexture(Texture2d, 0);
-        public void Delete() => DeleteTexture(ID);
+        private void Delete()
+        {
+            if (ID != 0)
+            {
+                DeleteTexture(ID);
+                ID = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+            }
+
+            Delete();
+
+            _disposed = true;
+        }
+
+        ~Texture() => Dispose(false);
     }
 }

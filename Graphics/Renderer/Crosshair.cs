@@ -48,28 +48,16 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Delete()
         {
-            _texture.Delete();
-            _ebo.Delete();
-            _textureVBO.Delete();
-            _vbo.Delete();
-            _vao.Delete();
-            _shader.Delete();
+            _texture.Dispose();
+            _ebo.Dispose();
+            _textureVBO.Dispose();
+            _vbo.Dispose();
+            _vao.Dispose();
+            _shader.Dispose();
         }
 
-        private static readonly List<Vector2> _vertices =
-        [
-            (-1f, -1f),
-            ( 1f, -1f),
-            ( 1f,  1f),
-            (-1f,  1f),
-        ];
-        private static readonly List<Vector2> _textureVertices =
-        [
-            (0f, 1f),
-            (1f, 1f),
-            (1f, 0f),
-            (0f, 0f)
-        ];
+        private static readonly List<Vector2> _vertices = [ (-1f, -1f), ( 1f, -1f), ( 1f,  1f), (-1f,  1f) ];
+        private static readonly List<Vector2> _textureVertices = [ (0f, 1f), (1f, 1f), (1f, 0f), (0f, 0f) ];
         private static readonly List<uint> _indices = [0, 1, 2, 2, 3, 0];
     }
 }

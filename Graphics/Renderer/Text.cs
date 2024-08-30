@@ -79,9 +79,9 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Delete()
         {
-            VBO.Delete();
-            VAO.Delete();
-            Shader.Delete();
+            VBO.Dispose();
+            VAO.Dispose();
+            Shader.Dispose();
         }
 
         private static readonly List<float> _vquad =

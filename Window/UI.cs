@@ -56,7 +56,7 @@ namespace VoxelWorld.Window
             _debugText.Delete();
             _crosshair.Delete();
             _lineBatch.Delete();
-           _selectedBlock.Delete();
+            _selectedBlock.Delete();
         }
 
         private void DrawLine(string text, float x, float y, float scale/*, Vector2 dir*/)

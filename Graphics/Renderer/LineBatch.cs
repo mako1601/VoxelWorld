@@ -82,14 +82,14 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Delete()
         {
-            _blockEBO.Delete();
-            _blockVBO.Delete();
-            _blockVAO.Delete();
+            _blockEBO.Dispose();
+            _blockVBO.Dispose();
+            _blockVAO.Dispose();
 
-            _chunkVBO.Delete();
-            _chunkVAO.Delete();
+            _chunkVBO.Dispose();
+            _chunkVAO.Dispose();
 
-            _shader.Delete();
+            _shader.Dispose();
         }
 
         private static readonly List<Vector3> _chunkVertices =

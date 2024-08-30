@@ -32,15 +32,8 @@ namespace VoxelWorld.Managers
         public HashSet<Vector2i> UpdateMesh { get; set; }
         public HashSet<Vector2i> VisibleChunks { get; private set; }
 
-        /// <summary>
-        /// 
-        /// </summary>
         public int Seed { get; private set; }
-        /// <summary>
-        /// Default value is 12.
-        /// </summary>
         public static byte RenderDistance { get; set; } = 6;
-        public static byte RegionSize { get; } = 32;
 
         private ChunkManager()
         {
@@ -201,7 +194,7 @@ namespace VoxelWorld.Managers
         /// </summary>
         public void Delete()
         {
-            TextureAtlas.Delete();
+            TextureAtlas.Dispose();
 
             File.WriteAllTextAsync("saves/world/world.json", Newtonsoft.Json.JsonConvert.SerializeObject(Seed, Newtonsoft.Json.Formatting.Indented));
 
@@ -215,7 +208,7 @@ namespace VoxelWorld.Managers
                 chunk.Delete();
             }
 
-            Shader.Delete();
+            Shader.Dispose();
         }
 
         /// <summary>

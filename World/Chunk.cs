@@ -14,7 +14,6 @@ namespace VoxelWorld.World
         public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
         public Vector2i Position { get; }
         public Block[] Blocks { get; set; }
-        public bool IsMeshCreated { get; set; }
 
         public Block this[Vector3i position]
         {
@@ -40,10 +39,10 @@ namespace VoxelWorld.World
             }
         }
 
-        private List<Vector3> _vertices;
-        private List<Vector2> _uvs;
-        private List<Vector4> _lights;
-        private List<uint> _indices;
+        private readonly List<Vector3> _vertices;
+        private readonly List<Vector2> _uvs;
+        private readonly List<Vector4> _lights;
+        private readonly List<uint> _indices;
         private uint _indexCount;
 
         private VAO? _vao;
@@ -62,8 +61,6 @@ namespace VoxelWorld.World
             _lights     = [];
             _indices    = [];
             _indexCount = 0;
-
-            IsMeshCreated = false;
 
             var noise = new FastNoiseLite(ChunkManager.Instance.Seed);
             noise.SetNoiseType(NoiseType.Perlin);
@@ -123,8 +120,6 @@ namespace VoxelWorld.World
         /// </summary>
         public void CreateMesh()
         {
-            IsMeshCreated = true;
-
             // creating a mesh
             for (int y = 0; y < Size.Y; y++)
             {
@@ -160,12 +155,7 @@ namespace VoxelWorld.World
         /// </summary>
         public void UpdateMesh()
         {
-            _vertices.Clear();
-            _uvs.Clear();
-            _lights.Clear();
-            _indices.Clear();
-            _indexCount = 0;
-
+            Delete();
             CreateMesh();
         }
         /// <summary>
@@ -182,11 +172,17 @@ namespace VoxelWorld.World
         /// </summary>
         public void Delete()
         {
-            _ebo?.Delete();
-            _lightvbo?.Delete();
-            _uvvbo?.Delete();
-            _vertexvbo?.Delete();
-            _vao?.Delete();
+            _vertices.Clear();
+            _uvs.Clear();
+            _lights.Clear();
+            _indices.Clear();
+            _indexCount = 0;
+
+            _ebo?.Dispose();
+            _lightvbo?.Dispose();
+            _uvvbo?.Dispose();
+            _vertexvbo?.Dispose();
+            _vao?.Dispose();
         }
         /// <summary>
         /// Selects all faces of the block that the player can see.

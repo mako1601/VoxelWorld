@@ -2,9 +2,8 @@
 {
     public interface IGraphicsObject
     {
-        public int ID { get; set; }
+        public int ID { get; }
         public void Bind();
         public void Unbind();
-        public void Delete();
     }
 }

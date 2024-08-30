@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-using OpenTK.Windowing.Common;
+﻿using OpenTK.Windowing.Common;
 
 using VoxelWorld.Window;
 
@@ -15,7 +13,7 @@ namespace VoxelWorld
             if (File.Exists("WindowSettings.json"))
             {
                 string json = File.ReadAllText("WindowSettings.json");
-                settings = JsonConvert.DeserializeObject<WindowSettings>(json);
+                settings = Newtonsoft.Json.JsonConvert.DeserializeObject<WindowSettings>(json);
 
                 settings.Location = settings.State is WindowState.Minimized ? (0, 0) : settings.Location;
                 settings.State = settings.State is WindowState.Minimized ? WindowState.Normal : settings.State;

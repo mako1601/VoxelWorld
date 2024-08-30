@@ -5,9 +5,10 @@ using static OpenTK.Graphics.OpenGL.BufferTarget;
 
 namespace VoxelWorld.Graphics
 {
-    public class VBO : IGraphicsObject
+    public class VBO : IGraphicsObject, IDisposable
     {
-        public int ID { get; set; }
+        private bool _disposed = false;
+        public int ID { get; private set; }
 
         public VBO(List<float> data)
         {
@@ -39,6 +40,34 @@ namespace VoxelWorld.Graphics
 
         public void Bind() => BindBuffer(ArrayBuffer, ID);
         public void Unbind() => BindBuffer(ArrayBuffer, 0);
-        public void Delete() => DeleteBuffer(ID);
+        private void Delete()
+        {
+            if (ID != 0)
+            {
+                DeleteBuffer(ID);
+                ID = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+            }
+
+            Delete();
+
+            _disposed = true;
+        }
+
+        ~VBO() => Dispose(false);
     }
 }

@@ -4,8 +4,9 @@ using static OpenTK.Graphics.OpenGL.GL;
 
 namespace VoxelWorld.Graphics
 {
-    public class FBO : IGraphicsObject
+    public class FBO : IGraphicsObject, IDisposable
     {
+        private bool _disposed = false;
         public int ID { get; set; }
         public int Texture { get; set; }
 
@@ -31,6 +32,39 @@ namespace VoxelWorld.Graphics
 
         public void Bind() => BindFramebuffer(FramebufferTarget.Framebuffer, ID);
         public void Unbind() => BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        public void Delete() => DeleteFramebuffer(ID);
+        private void Delete()
+        {
+            if (ID != 0)
+            {
+                DeleteFramebuffer(ID);
+                ID = 0;
+            }
+            if (Texture != 0)
+            {
+                DeleteTexture(Texture);
+                Texture = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+            }
+
+            Delete();
+
+            _disposed = true;
+        }
+
+        ~FBO() => Dispose(false);
     }
 }
