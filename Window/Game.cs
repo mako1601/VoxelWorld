@@ -109,15 +109,6 @@ namespace VoxelWorld.Window
         {
             base.OnUpdateFrame(args);
 
-            if (ChunkManager.Instance.AddQueue.Count == 0 && ChunkManager.Instance.UpdateMesh.Count > 0)
-            {
-                ChunkManager.Instance.UpdateMesh = [.. ChunkManager.Instance.UpdateMesh.OrderBy(chunk => ChunkManager.GetDistance(Player.CurrentChunk, chunk))];
-                var c = ChunkManager.Instance.UpdateMesh.First();
-                ChunkManager.Instance.UpdateMesh.Remove(c);
-                ChunkManager.Instance.Chunks.TryGetValue(c, out var chunk);
-                chunk?.CreateMesh();
-            }
-
             if (Player.IsMovedToAnotherChunk)
             {
                 ChunkManager.Instance.UpdateVisibleChunks(Player.CurrentChunk);
@@ -125,6 +116,8 @@ namespace VoxelWorld.Window
 
             ChunkManager.Instance.RemoveChunk();
             ChunkManager.Instance.CreateChunk();
+            ChunkManager.Instance.CreateChunkMesh(Player.CurrentChunk);
+            ChunkManager.Instance.UpdateChunkMesh();
 
             if (!IsFocused) return;
 

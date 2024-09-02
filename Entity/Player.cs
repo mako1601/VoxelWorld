@@ -42,7 +42,7 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
-        public bool IsMovedToAnotherChunk { get; private set; }
+        public bool IsMovedToAnotherChunk { get; private set; } = false;
         /// <summary>
         /// 
         /// </summary>
@@ -67,7 +67,6 @@ namespace VoxelWorld.Entity
                 Position              = player.Position;
                 RoundedPosition       = RoundPosition();
                 CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
-                IsMovedToAnotherChunk = false;
                 Camera                = new Camera(cursorPosition, player.Camera);
                 SelectedBlock         = player.SelectedBlock;
             }
@@ -76,7 +75,6 @@ namespace VoxelWorld.Entity
                 Position              = (8, 36, 8);
                 RoundedPosition       = RoundPosition();
                 CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
-                IsMovedToAnotherChunk = true;
                 Camera                = new Camera(cursorPosition);
             }
         }

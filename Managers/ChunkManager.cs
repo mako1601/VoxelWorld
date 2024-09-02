@@ -29,11 +29,12 @@ namespace VoxelWorld.Managers
 
         public Queue<Vector2i> AddQueue { get; private set; }
         public Queue<Vector2i> RemoveQueue { get; private set; }
+        public HashSet<Vector2i> CreateMesh { get; set; }
         public HashSet<Vector2i> UpdateMesh { get; set; }
         public HashSet<Vector2i> VisibleChunks { get; private set; }
 
         public int Seed { get; private set; }
-        public static byte RenderDistance { get; set; } = 6;
+        public static byte RenderDistance { get; set; } = 8;
 
         private ChunkManager()
         {
@@ -52,6 +53,7 @@ namespace VoxelWorld.Managers
             AddQueue    = [];
             RemoveQueue = [];
 
+            CreateMesh    = [];
             UpdateMesh    = [];
             VisibleChunks = [];
         }
@@ -104,8 +106,13 @@ namespace VoxelWorld.Managers
                             Lightmaps[position] = lightmap;
                         }
 
-                        UpdateMesh.Add(position);
+                        CreateMesh.Add(position);
                     }
+
+                    UpdateMesh.Add(position + (1, 0));
+                    UpdateMesh.Add(position + (-1, 0));
+                    UpdateMesh.Add(position + (0, 1));
+                    UpdateMesh.Add(position + (0, -1));
                 }
             }
 
@@ -115,6 +122,7 @@ namespace VoxelWorld.Managers
                 if (!VisibleChunks.Contains(position))
                 {
                     RemoveQueue.Enqueue(position);
+                    CreateMesh.Remove(position);
                     UpdateMesh.Remove(position);
                 }
             }
@@ -135,7 +143,7 @@ namespace VoxelWorld.Managers
                 SolverB.Solve();
                 SolverS.Solve();
 
-                UpdateMesh.Add(c);
+                CreateMesh.Add(c);
             }
         }
         public void RemoveChunk()
@@ -154,6 +162,30 @@ namespace VoxelWorld.Managers
                 }
             }
         }
+
+        public void CreateChunkMesh(Vector2i currentChunk)
+        {
+            if (CreateMesh.Count > 0 && AddQueue.Count == 0)
+            {
+                List<Vector2i> chunks = [.. CreateMesh];
+                chunks.Sort((a, b) => GetDistance(currentChunk, a).CompareTo(GetDistance(currentChunk, b)));
+                CreateMesh.Remove(chunks[0]);
+                Chunks.TryGetValue(chunks[0], out var chunk);
+                chunk?.CreateMesh();
+            }
+        }
+
+        public void UpdateChunkMesh()
+        {
+            if (UpdateMesh.Count > 0 && CreateMesh.Count == 0 && AddQueue.Count == 0)
+            {
+                var c = UpdateMesh.First();
+                UpdateMesh.Remove(c);
+                Chunks.TryGetValue(c, out var chunk);
+                chunk?.UpdateMesh();
+            }
+        }
+
         /// <summary>
         /// Draws all the chunks.
         /// </summary>
@@ -555,6 +587,7 @@ namespace VoxelWorld.Managers
             foreach (var position in VisibleChunks)
             {
                 var (chunk, lightmap) = ReadChunk(position);
+
                 if (chunk is not null)
                 {
                     Chunks[position] = chunk;
@@ -563,10 +596,11 @@ namespace VoxelWorld.Managers
                 {
                     AddQueue.Enqueue(position);
                 }
+
                 if (lightmap is not null)
                 {
                     Lightmaps[position] = lightmap;
-                    UpdateMesh.Add(position);
+                    CreateMesh.Add(position);
                 }
             }
 
