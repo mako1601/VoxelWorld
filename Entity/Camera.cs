@@ -1,8 +1,10 @@
 ﻿using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using VoxelWorld.World;
 using VoxelWorld.Managers;
+using SharpFont;
 
 namespace VoxelWorld.Entity
 {
@@ -35,22 +37,11 @@ namespace VoxelWorld.Entity
         /// <summary>
         /// 
         /// </summary>
-        [Newtonsoft.Json.JsonIgnore]
-        public float Sensitivity { get; set; } = 0.1f;
+        public float Sensitivity { get; set; }
         /// <summary>
         /// 
         /// </summary>
         public float FOV { get; set; }
-        /// <summary>
-        /// 
-        /// </summary>
-        [Newtonsoft.Json.JsonIgnore]
-        public bool FirstMove { get; set; } = true;
-        /// <summary>
-        /// 
-        /// </summary>
-        [Newtonsoft.Json.JsonIgnore]
-        public Vector2 LastPosition { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -75,29 +66,61 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
-        public float AspectRatio { get; set; } = 0f;
+        public int Width { get; set; }
         /// <summary>
         /// 
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
-        public Ray Ray { get; set; } = new Ray();
+        public int Height { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public Ray Ray { get; private set; } = new Ray();
+        /// <summary>
+        /// For some reason that is not clear to me, the value of NativeWindow.MousePosition
+        /// only changes after two frames, which makes me implement this hack in the camera
+        /// rotation control, and it also helps solve the problem of cursor movement when
+        /// changing the window mode.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public byte MoveCount { get; set; }
 
-        public Camera(Vector2 cursorPosition, Camera? camera = null)
+        /// <summary>
+        /// Default value is 5.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
+        private float _rayDistance;
+
+        public Camera()
         {
-            LastPosition = cursorPosition;
+            FOV   =  90f;
+            Up    =  Vector3.UnitY;
+            Front = -Vector3.UnitZ;
+            Right =  Vector3.UnitX;
+            Pitch =   0f;
+            Yaw   = -90f;
 
-            FOV   = camera?.FOV   ?? 90f;
-            Up    = camera?.Up    ?? Vector3.UnitY;
-            Front = camera?.Front ?? -Vector3.UnitZ;
-            Right = camera?.Right ?? Vector3.UnitX;
-            Pitch = camera?.Pitch ?? 0f;
-            Yaw   = camera?.Yaw   ?? -90f;
+            Sensitivity  = 1f;
+            _rayDistance = 12f;
+            MoveCount    = 0;
+        }
+        public Camera(Camera camera)
+        {
+            FOV   = camera.FOV;
+            Up    = camera.Up;
+            Front = camera.Front;
+            Right = camera.Right;
+            Pitch = camera.Pitch;
+            Yaw   = camera.Yaw;
 
-            UpdateVectors();
+            Sensitivity  = camera.Sensitivity;
+            _rayDistance = 12f;
+            MoveCount    = 0;
         }
 
         [Newtonsoft.Json.JsonConstructor]
-        private Camera(float fov, Vector3 up, Vector3 front, Vector3 right, float pitch, float yaw)
+        private Camera(float fov, Vector3 up, Vector3 front, Vector3 right, float pitch, float yaw, float sensitivity)
         {
             FOV   = fov;
             Up    = up;
@@ -105,6 +128,8 @@ namespace VoxelWorld.Entity
             Right = right;
             Pitch = pitch;
             Yaw   = yaw;
+
+            Sensitivity = sensitivity;
         }
         /// <summary>
         /// 
@@ -116,7 +141,7 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         /// <returns></returns>
-        public Matrix4 GetProjectionMatrix() => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, 0.001f, 1000f);
+        public Matrix4 GetProjectionMatrix() => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), (float)Width / Height, 0.001f, 1000f);
         /// <summary>
         /// 
         /// </summary>
@@ -136,24 +161,21 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         /// <param name="cursorState"></param>
-        /// <param name="position"></param>
-        public void Move(CursorState cursorState, Vector2 position)
+        /// <param name="mouseState"></param>
+        public void Move(CursorState cursorState, MouseState mouseState)
         {
             if (cursorState is CursorState.Grabbed)
             {
-                if (FirstMove is true)
+                if (MoveCount < 2)
                 {
-                    LastPosition = position;
-                    FirstMove = false;
+                    MoveCount++;
+                    return;
                 }
-                else
-                {
-                    float deltaX = position.X - LastPosition.X;
-                    float deltaY = LastPosition.Y - position.Y;
-                    LastPosition = position;
 
-                    Yaw   += deltaX * Sensitivity;
-                    Pitch += deltaY * Sensitivity;
+                if (mouseState.Delta.X != 0 || mouseState.Delta.Y != 0)
+                {
+                    Yaw   += mouseState.Delta.X * Sensitivity / 10f;
+                    Pitch -= mouseState.Delta.Y * Sensitivity / 10f;
 
                     Pitch = Math.Clamp(Pitch, -89.999f, 89.999f);
 
@@ -229,8 +251,7 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         /// <param name="position"></param>
-        /// <param name="maxLength"></param>
-        public void RayCast(Vector3 position, float maxLength)
+        public void RayCast(Vector3 position)
         {
             float posX = position.X;
             float posY = position.Y;
@@ -266,7 +287,7 @@ namespace VoxelWorld.Entity
 
             int steppedIndex = -1;
             float t = 0f;
-            while (t <= maxLength)
+            while (t <= _rayDistance)
             {
                 var block = ChunkManager.GetBlock(ix, iy, iz, true);
                 if (block is not null && block.Type is not Block.TypeOfBlock.Air)

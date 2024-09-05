@@ -22,10 +22,10 @@ namespace VoxelWorld.Entity
     public class Player
     {
         /// <summary>
-        /// Default value is 8.
+        /// 
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
-        public float Speed { get; set; } = 20f;
+        public float Speed { get; }
         /// <summary>
         /// 
         /// </summary>
@@ -42,7 +42,7 @@ namespace VoxelWorld.Entity
         /// 
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
-        public bool IsMovedToAnotherChunk { get; private set; } = false;
+        public bool IsMovedToAnotherChunk { get; private set; }
         /// <summary>
         /// 
         /// </summary>
@@ -50,56 +50,42 @@ namespace VoxelWorld.Entity
         /// <summary>
         /// Default value is 1 (stone block).
         /// </summary>
-        public int SelectedBlock { get; set; } = 1;
-        /// <summary>
-        /// Default value is 5.
-        /// </summary>
-        [Newtonsoft.Json.JsonIgnore]
-        public float RayDistance { get; set; } = 12f;
+        public int SelectedBlock { get; set; }
 
         private double _lastLeftClickTime  = 0d;
         private double _lastRightClickTime = 0d;
 
-        public Player(Vector2 cursorPosition, Player? player = null)
+        public Player(Player? player)
         {
             if (player is not null)
             {
-                Position              = player.Position;
-                RoundedPosition       = RoundPosition();
-                CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
-                Camera                = new Camera(cursorPosition, player.Camera);
-                SelectedBlock         = player.SelectedBlock;
+                Camera          = new Camera(player.Camera);
+                Position        = player.Position;
+                RoundedPosition = RoundPosition();
+                CurrentChunk    = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
+                SelectedBlock   = player.SelectedBlock;
             }
             else
             {
-                Position              = (8, 36, 8);
-                RoundedPosition       = RoundPosition();
-                CurrentChunk          = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
-                Camera                = new Camera(cursorPosition);
+                Camera          = new Camera();
+                Position        = (8, 36, 8);
+                RoundedPosition = RoundPosition();
+                CurrentChunk    = ChunkManager.GetChunkPosition(RoundedPosition.Xz);
+                SelectedBlock   = 1;
             }
+
+            IsMovedToAnotherChunk = false;
+            Speed = 20f;
         }
 
         [Newtonsoft.Json.JsonConstructor]
-        private Player(Vector3 position, Camera camera, Vector3i roundedPosition, Vector2i currentChunk, int selectedBlock)
+        private Player(Camera camera, Vector3 position, Vector3i roundedPosition, Vector2i currentChunk, int selectedBlock)
         {
-            Position        = position;
             Camera          = camera;
+            Position        = position;
             RoundedPosition = roundedPosition;
             CurrentChunk    = currentChunk;
             SelectedBlock   = selectedBlock;
-        }
-
-        public static Player Load(string filepath, Vector2 mousePosition)
-        {
-            if (File.Exists(filepath))
-            {
-                var player = Newtonsoft.Json.JsonConvert.DeserializeObject<Player>(File.ReadAllText(filepath));
-                return new Player(mousePosition, player);
-            }
-            else
-            {
-                return new Player(mousePosition);
-            }
         }
 
         public void KeyboardInput(KeyboardState input, float time)
@@ -158,7 +144,7 @@ namespace VoxelWorld.Entity
 
         public void MouseInput(MouseState input, double time)
         {
-            Camera.RayCast(Position, RayDistance);
+            Camera.RayCast(Position);
 
             if (input.IsButtonPressed(MouseButton.Left)) 
                 _lastLeftClickTime = Camera.PressedDestroyBlock(_lastLeftClickTime);

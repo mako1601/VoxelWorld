@@ -67,7 +67,7 @@ namespace VoxelWorld.Graphics.Renderer
             }
 
             _shader.Bind();
-            _shader.SetMatrix4("uProjection", Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90f), info.Player.Camera.AspectRatio, 1f, 3f));
+            _shader.SetMatrix4("uProjection", Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90f), (float)info.Player.Camera.Width / info.Player.Camera.Height, 1f, 3f));
             _shader.SetMatrix4("uView", info.Player.Camera.GetViewMatrix(info.Player.Position));
             _shader.SetMatrix4("uModel1", Matrix4.CreateTranslation(info.Player.Position + info.Player.Camera.Front));
             _shader.SetMatrix4("uModel2", info.Player.Camera.GetViewMatrix(info.Player.Position).ClearTranslation().Inverted());

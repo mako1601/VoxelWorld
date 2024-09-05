@@ -83,9 +83,6 @@ namespace VoxelWorld.Window
         {
             var texture = StbImageSharp.ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/logo.png"), StbImageSharp.ColorComponents.RedGreenBlueAlpha);
             Icon = new OpenTK.Windowing.Common.Input.WindowIcon(new OpenTK.Windowing.Common.Input.Image(texture.Width, texture.Height, texture.Data));
-
-            MousePosition = (ClientSize.X / 2f, ClientSize.Y / 2f);
-            CursorState = CursorState.Grabbed;
         }
 
         protected override void OnLoad()
@@ -100,7 +97,7 @@ namespace VoxelWorld.Window
             _textureManager = TextureManager.Instance;
             //_skybox = new Skybox();
             _chunkManager = ChunkManager.Instance;
-            Player = Player.Load("saves/world/player.json", MousePosition);
+            Player = new Player(JsonConvert.DeserializeObject<Player>(File.ReadAllText("saves/world/player.json")));
             ChunkManager.Instance.Load(Player.CurrentChunk);
             Interface = new UI(Player.SelectedBlock);
         }
@@ -138,7 +135,7 @@ namespace VoxelWorld.Window
 
             Player.KeyboardInput(KeyboardState, (float)args.Time);
             Player.MouseInput(MouseState, args.Time);
-            Player.Camera.Move(CursorState, MousePosition);
+            Player.Camera.Move(CursorState, MouseState);
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -162,7 +159,9 @@ namespace VoxelWorld.Window
             base.OnResize(e);
 
             Viewport(0, 0, ClientSize.X, ClientSize.Y);
-            Player.Camera.AspectRatio = (float)ClientSize.X / ClientSize.Y;
+
+            Player.Camera.Width  = ClientSize.X;
+            Player.Camera.Height = ClientSize.Y;
         }
 
         protected override void OnUnload()
@@ -200,10 +199,6 @@ namespace VoxelWorld.Window
 
             if (e.Key is Keys.F11 || e.Key is Keys.Enter && KeyboardState.IsKeyDown(Keys.LeftAlt))
             {
-                // FIXME: MousePosition changes when changing WindowState to
-                // Fullscreen and vice versa with CursorState.Grabbed, which should not be the case.
-                // It is not critical, but it is very conspicuous and annoying.
-                // If you know how to fix it, I will be very glad.
                 if (WindowState is WindowState.Fullscreen)
                 {
                     WindowState = PreviousWindowState;
@@ -218,6 +213,8 @@ namespace VoxelWorld.Window
                     PreviousWindowState = WindowState;
                     WindowState = WindowState.Fullscreen;
                 }
+
+                Player.Camera.MoveCount = 0;
             }
 
             if (e.Key is Keys.Z)
@@ -257,10 +254,12 @@ namespace VoxelWorld.Window
 
             if (e.Button is MouseButton.Middle)
             {
+                MousePosition = (ClientSize.X / 2f, ClientSize.Y / 2f);
+
                 if (CursorState is CursorState.Grabbed)
                 {
                     CursorState = CursorState.Normal;
-                    Player.Camera.FirstMove = true;
+                    Player.Camera.MoveCount = 0;
                 }
                 else
                 {

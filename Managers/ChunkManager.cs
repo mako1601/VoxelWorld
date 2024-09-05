@@ -35,8 +35,8 @@ namespace VoxelWorld.Managers
 
         public Queue<Vector2i> AddQueue { get; private set; }
         public Queue<Vector2i> RemoveQueue { get; private set; }
-        public HashSet<Vector2i> CreateMesh { get; set; }
-        public HashSet<Vector2i> UpdateMesh { get; set; }
+        public HashSet<Vector2i> CreateMesh { get; private set; }
+        public HashSet<Vector2i> UpdateMesh { get; private set; }
         public HashSet<Vector2i> VisibleChunks { get; private set; }
 
         public int Seed { get; private set; }
@@ -61,6 +61,95 @@ namespace VoxelWorld.Managers
             CreateMesh    = [];
             UpdateMesh    = [];
             VisibleChunks = [];
+        }
+        /// <summary>
+        /// Draws all the chunks.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="time"></param>
+        /// <param name="backgroundColor"></param>
+        /// <param name="isWhiteWorld"></param>
+        public void Draw(Player player, double time, Color3<Rgb> backgroundColor, bool isWhiteWorld)
+        {
+            Enable(EnableCap.CullFace);
+            CullFace(TriangleFace.Back);
+            Enable(EnableCap.Blend);
+            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            Shader.Bind();
+            Shader.SetBool("uIsWhiteWorld", isWhiteWorld);
+            Shader.SetVector3("uViewPos", player.Position);
+            Shader.SetVector3("uFogColor", backgroundColor);
+            Shader.SetFloat("uFogFactor", 0.9f); // 0 - fog off
+            Shader.SetFloat("uFogCurve", 5f);
+            Shader.SetFloat("uGamma", 1.6f);
+            Shader.SetFloat("uTime", (float)time);
+            Shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
+            Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
+
+            foreach (var (position, chunkInfo) in Chunks)
+            {
+                Shader.SetMatrix4("uModel", Matrix4.CreateTranslation(position.X * Chunk.Size.X, 0f, position.Y * Chunk.Size.Z));
+                chunkInfo.Chunk?.Draw();
+            }
+
+            Disable(EnableCap.CullFace);
+            Disable(EnableCap.Blend);
+        }
+        /// <summary>
+        /// Deallocates all resources.
+        /// </summary>
+        public void Delete()
+        {
+            TextureAtlas.Dispose();
+
+            File.WriteAllTextAsync("saves/world/world.json", Newtonsoft.Json.JsonConvert.SerializeObject(Seed, Newtonsoft.Json.Formatting.Indented));
+
+            WriteChunks(Chunks);
+
+            foreach (var (_, chunkInfo) in Chunks)
+            {
+                chunkInfo.Chunk.Delete();
+            }
+
+            Shader.Dispose();
+        }
+
+        #region Chunks
+
+        /// <summary>
+        /// Updates vertices, textures, etc. for the nearest сhunks.
+        ///  []  []  []
+        ///    \ |  /
+        /// [] - [] - []
+        ///    / |  \
+        ///  []  []  []
+        /// </summary>
+        /// <param name="c">Coordinates of the chunk</param>
+        // TODO: needs a lot of optimization
+        private static void UpdateNearestChunks(Vector2i c)
+        {
+            List<Vector2i> chunkOffsets =
+            [
+                ( 1,  0),
+                (-1,  0),
+                ( 0, -1),
+                ( 0,  1),
+
+                ( 1,  1),
+                ( 1, -1),
+                (-1,  1),
+                (-1, -1),
+            ];
+
+            foreach (var offset in chunkOffsets)
+            {
+                var newC = c + offset;
+                if (Instance.Chunks.TryGetValue(newC, out var chunkInfo))
+                {
+                    chunkInfo.Chunk.UpdateMesh();
+                }
+            }
         }
         /// <summary>
         /// 
@@ -185,94 +274,7 @@ namespace VoxelWorld.Managers
             }
         }
 
-        /// <summary>
-        /// Draws all the chunks.
-        /// </summary>
-        /// <param name="player"></param>
-        /// <param name="time"></param>
-        /// <param name="backgroundColor"></param>
-        /// <param name="isWhiteWorld"></param>
-        public void Draw(Player player, double time, Color3<Rgb> backgroundColor, bool isWhiteWorld)
-        {
-            Enable(EnableCap.CullFace);
-            CullFace(TriangleFace.Back);
-            Enable(EnableCap.Blend);
-            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-            Shader.Bind();
-            Shader.SetBool("uIsWhiteWorld", isWhiteWorld);
-            Shader.SetVector3("uViewPos", player.Position);
-            Shader.SetVector3("uFogColor", backgroundColor);
-            Shader.SetFloat("uFogFactor", 0.9f); // 0 - fog off
-            Shader.SetFloat("uFogCurve", 5f);
-            Shader.SetFloat("uGamma", 1.6f);
-            Shader.SetFloat("uTime", (float)time);
-            Shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
-            Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
-
-
-            foreach (var (position, chunkInfo) in Chunks)
-            {
-                Shader.SetMatrix4("uModel", Matrix4.CreateTranslation(position.X * Chunk.Size.X, 0f, position.Y * Chunk.Size.Z));
-                chunkInfo.Chunk?.Draw();
-            }
-
-            Disable(EnableCap.CullFace);
-            Disable(EnableCap.Blend);
-        }
-        /// <summary>
-        /// Deallocates all resources.
-        /// </summary>
-        public void Delete()
-        {
-            TextureAtlas.Dispose();
-
-            File.WriteAllTextAsync("saves/world/world.json", Newtonsoft.Json.JsonConvert.SerializeObject(Seed, Newtonsoft.Json.Formatting.Indented));
-
-            WriteChunks(Chunks);
-
-            foreach (var (_, chunkInfo) in Chunks)
-            {
-                chunkInfo.Chunk.Delete();
-            }
-
-            Shader.Dispose();
-        }
-
-        /// <summary>
-        /// Updates vertices, textures, etc. for the nearest сhunks.
-        ///  []  []  []
-        ///    \ |  /
-        /// [] - [] - []
-        ///    / |  \
-        ///  []  []  []
-        /// </summary>
-        /// <param name="c">Coordinates of the chunk</param>
-        // TODO: needs a lot of optimization
-        private static void UpdateNearestChunks(Vector2i c)
-        {
-            List<Vector2i> chunkOffsets =
-            [
-                ( 1,  0),
-                (-1,  0),
-                ( 0, -1),
-                ( 0,  1),
-            
-                ( 1,  1),
-                ( 1, -1),
-                (-1,  1),
-                (-1, -1),
-            ];
-            
-            foreach (var offset in chunkOffsets)
-            {
-                var newC = c + offset;
-                if (Instance.Chunks.TryGetValue(newC, out var chunkInfo))
-                {
-                    chunkInfo.Chunk.UpdateMesh();
-                }
-            }
-        }
+        #endregion Chunks
 
         #region Blocks
 
