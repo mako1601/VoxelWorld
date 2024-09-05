@@ -97,7 +97,14 @@ namespace VoxelWorld.Window
             _textureManager = TextureManager.Instance;
             //_skybox = new Skybox();
             _chunkManager = ChunkManager.Instance;
-            Player = new Player(JsonConvert.DeserializeObject<Player>(File.ReadAllText("saves/world/player.json")));
+            if (File.Exists("saves/world/player.json"))
+            {
+                Player = new Player(JsonConvert.DeserializeObject<Player>(File.ReadAllText("saves/world/player.json")));
+            }
+            else
+            {
+                Player = new Player(null);
+            }
             ChunkManager.Instance.Load(Player.CurrentChunk);
             Interface = new UI(Player.SelectedBlock);
         }
