@@ -46,10 +46,10 @@ namespace VoxelWorld.World
         private uint _indexCount;
 
         private VAO? _vao;
-        private VBO? _vertexvbo;
-        private VBO? _uvvbo;
-        private VBO? _lightvbo;
-        private EBO? _ebo;
+        private BufferObject<Vector3>? _vertexvbo;
+        private BufferObject<Vector2>? _uvvbo;
+        private BufferObject<Vector4>? _lightvbo;
+        private BufferObject<uint>? _ebo;
 
         public Chunk(Vector2i position)
         {
@@ -139,16 +139,16 @@ namespace VoxelWorld.World
 
             _vao = new VAO();
 
-            _vertexvbo = new VBO(_vertices);
+            _vertexvbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices.ToArray(), false);
             VAO.LinkToVAO(0, 3);
 
-            _uvvbo = new VBO(_uvs);
+            _uvvbo = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), false);
             VAO.LinkToVAO(1, 2);
 
-            _lightvbo = new VBO(_lights);
+            _lightvbo = new BufferObject<Vector4>(BufferTarget.ArrayBuffer, _lights.ToArray(), false);
             VAO.LinkToVAO(2, 4);
 
-            _ebo = new EBO(_indices);
+            _ebo = new BufferObject<uint>(BufferTarget.ElementArrayBuffer, _indices.ToArray(), false);
         }
         /// <summary>
         /// Updates a mesh of the chunk.

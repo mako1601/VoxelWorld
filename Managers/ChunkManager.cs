@@ -8,7 +8,6 @@ using VoxelWorld.World;
 using VoxelWorld.Entity;
 using VoxelWorld.Graphics;
 using VoxelWorld.Graphics.Renderer;
-using System.Diagnostics;
 
 namespace VoxelWorld.Managers
 {

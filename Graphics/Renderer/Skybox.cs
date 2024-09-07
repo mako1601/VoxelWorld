@@ -15,8 +15,8 @@ namespace VoxelWorld.Graphics.Renderer
     {
         private readonly ShaderProgram _shader;
         private readonly VAO _vao;
-        private readonly VBO _vbo;
-        private readonly EBO _ebo;
+        private readonly BufferObject<Vector3> _vbo;
+        private readonly BufferObject<byte> _ebo;
         private readonly int _texture;
 
         public Skybox()
@@ -25,10 +25,10 @@ namespace VoxelWorld.Graphics.Renderer
 
             _vao = new VAO();
 
-            _vbo = new VBO(_skyboxVertices);
+            _vbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _skyboxVertices, false);
             VAO.LinkToVAO(0, 3);
 
-            _ebo = new EBO(_skyboxIndices);
+            _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _skyboxIndices, false);
 
             _texture = GenTexture();
             BindTexture(TextureCubeMap, _texture);
@@ -42,7 +42,7 @@ namespace VoxelWorld.Graphics.Renderer
             StbImage.stbi_set_flip_vertically_on_load(0);
 
             ImageResult texture;
-            for (int i = 0; i < _skyboxPaths.Count; i++)
+            for (int i = 0; i < _skyboxPaths.Length; i++)
             {
                 try
                 {
@@ -84,7 +84,7 @@ namespace VoxelWorld.Graphics.Renderer
             ActiveTexture(TextureUnit.Texture0);
             BindTexture(TextureCubeMap, _texture);
             _vao.Bind();
-            DrawElements(PrimitiveType.Triangles, _skyboxIndices.Count, DrawElementsType.UnsignedInt, 0);
+            DrawElements(PrimitiveType.Triangles, _skyboxIndices.Length, DrawElementsType.UnsignedByte, 0);
 
             DepthFunc(DepthFunction.Less);
         }
@@ -98,7 +98,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Dispose();
         }
 
-        private static readonly List<string> _skyboxPaths =
+        private static readonly string[] _skyboxPaths =
         [
             "skybox/right.png",
             "skybox/left.png",
@@ -107,7 +107,7 @@ namespace VoxelWorld.Graphics.Renderer
             "skybox/front.png",
             "skybox/back.png"
         ];
-        private static readonly List<Vector3> _skyboxVertices =
+        private static readonly Vector3[] _skyboxVertices =
         [
             (-1f, -1f,  1f),
             ( 1f, -1f,  1f),
@@ -139,7 +139,7 @@ namespace VoxelWorld.Graphics.Renderer
             ( 1f, -1f,  1f),
             (-1f, -1f,  1f)
         ];
-        private static readonly List<uint> _skyboxIndices =
+        private static readonly byte[] _skyboxIndices =
         [
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,

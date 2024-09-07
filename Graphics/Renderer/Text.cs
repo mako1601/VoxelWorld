@@ -18,7 +18,7 @@ namespace VoxelWorld.Graphics.Renderer
 
         public ShaderProgram Shader { get; private set; }
         public VAO VAO { get; private set; }
-        public VBO VBO { get; private set; }
+        public BufferObject<float> VBO { get; private set; }
         public Dictionary<uint, Character> Characters { get; private set; } = [];
 
         public Text(uint height)
@@ -67,7 +67,7 @@ namespace VoxelWorld.Graphics.Renderer
             BindTexture(TextureTarget.Texture2d, 0);
             PixelStoref(PixelStoreParameter.UnpackAlignment, 4);
 
-            VBO = new VBO(_vquad);
+            VBO = new BufferObject<float>(BufferTarget.ArrayBuffer, _vquad, false);
 
             VAO = new VAO();
             VAO.LinkToVAO(0, 2, 4 * 4);
@@ -84,7 +84,7 @@ namespace VoxelWorld.Graphics.Renderer
             Shader.Dispose();
         }
 
-        private static readonly List<float> _vquad =
+        private static readonly float[] _vquad =
         [
         //   x    y   u   v
             0f, -1f, 0f, 0f,

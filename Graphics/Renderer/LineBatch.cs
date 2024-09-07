@@ -13,11 +13,11 @@ namespace VoxelWorld.Graphics.Renderer
         private readonly ShaderProgram _shader;
 
         private readonly VAO _chunkVAO;
-        private readonly VBO _chunkVBO;
+        private readonly BufferObject<Vector3> _chunkVBO;
 
         private readonly VAO _blockVAO;
-        private readonly VBO _blockVBO;
-        private readonly EBO _blockEBO;
+        private readonly BufferObject<Vector3> _blockVBO;
+        private readonly BufferObject<byte> _blockEBO;
 
         public LineBatch()
         {
@@ -25,15 +25,15 @@ namespace VoxelWorld.Graphics.Renderer
 
             _chunkVAO = new VAO();
 
-            _chunkVBO = new VBO(_chunkVertices);
+            _chunkVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _chunkVertices, false);
             VAO.LinkToVAO(0, 3);
 
             _blockVAO = new VAO();
 
-            _blockVBO = new VBO(_blockVertices);
+            _blockVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _blockVertices, false);
             VAO.LinkToVAO(0, 3);
 
-            _blockEBO = new EBO(_blockIndices);
+            _blockEBO = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _blockIndices, false);
         }
 
         public void DrawChunkBoundaries(Color3<Rgb> color, Player player)
@@ -52,7 +52,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _chunkVAO.Bind();
-            DrawArrays(PrimitiveType.Lines, 0, _chunkVertices.Count);
+            DrawArrays(PrimitiveType.Lines, 0, _chunkVertices.Length);
 
             Disable(EnableCap.CullFace);
             Disable(EnableCap.Blend);
@@ -74,7 +74,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _blockVAO.Bind();
-            DrawElements(PrimitiveType.Lines, _blockIndices.Count, DrawElementsType.UnsignedInt, 0);
+            DrawElements(PrimitiveType.Lines, _blockIndices.Length, DrawElementsType.UnsignedByte, 0);
 
             Disable(EnableCap.CullFace);
             Disable(EnableCap.Blend);
@@ -92,7 +92,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Dispose();
         }
 
-        private static readonly List<Vector3> _chunkVertices =
+        private static readonly Vector3[] _chunkVertices =
         [
             (0f, -1000f, 0f), (0f,  1000f, 0f), ( 4f, -1000f, 0f), ( 4f,  1000f, 0f),
             (8f, -1000f, 0f), (8f,  1000f, 0f), (12f, -1000f, 0f), (12f,  1000f, 0f),
@@ -116,7 +116,7 @@ namespace VoxelWorld.Graphics.Renderer
             ( 0f, -1000f, -16f), ( 0f, 1000f, -16f), (-16f, -1000f, -16f), (-16f, 1000f, -16f),
         ];
 
-        private static readonly List<Vector3> _blockVertices =
+        private static readonly Vector3[] _blockVertices =
         [
             (-0.004f, -0.004f, -0.004f),
             ( 1.004f, -0.004f, -0.004f),
@@ -127,7 +127,7 @@ namespace VoxelWorld.Graphics.Renderer
             ( 1.004f,  1.004f,  1.004f),
             (-0.004f,  1.004f,  1.004f)
         ];
-        private static readonly List<uint> _blockIndices =
+        private static readonly byte[] _blockIndices =
         [
             0, 1, 1, 2, 2, 3, 3, 0,
             0, 4, 1, 5, 2, 6, 3, 7,

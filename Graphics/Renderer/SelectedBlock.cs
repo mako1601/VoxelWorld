@@ -13,10 +13,10 @@ namespace VoxelWorld.Graphics.Renderer
         private int _id;
         private readonly ShaderProgram _shader;
         private readonly VAO _vao;
-        private readonly VBO _vboVertices;
-        private readonly VBO _vboUV;
-        private readonly VBO _vboBrightness;
-        private readonly EBO _ebo;
+        private readonly BufferObject<Vector3> _vboVertices;
+        private readonly BufferObject<Vector2> _vboUV;
+        private readonly BufferObject<float> _vboBrightness;
+        private readonly BufferObject<byte> _ebo;
 
         private readonly List<Vector2> _uvs;
 
@@ -28,7 +28,7 @@ namespace VoxelWorld.Graphics.Renderer
 
             _vao = new VAO();
 
-            _vboVertices = new VBO(_vertices);
+            _vboVertices = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices, false);
             VAO.LinkToVAO(0, 3);
 
             _uvs = [];
@@ -36,13 +36,13 @@ namespace VoxelWorld.Graphics.Renderer
             _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Front));
             _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Right));
 
-            _vboUV = new VBO(_uvs);
+            _vboUV = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), false);
             VAO.LinkToVAO(1, 2);
 
-            _vboBrightness = new VBO(_brightness);
+            _vboBrightness = new BufferObject<float>(BufferTarget.ArrayBuffer, _brightness, false);
             VAO.LinkToVAO(2, 1);
 
-            _ebo = new EBO(_indices);
+            _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _indices, false);
         }
 
         public void Draw(UI.Info info)
@@ -76,7 +76,7 @@ namespace VoxelWorld.Graphics.Renderer
 
             ChunkManager.Instance.TextureAtlas.Bind();
             _vao.Bind();
-            DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
+            DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedByte, 0);
 
             Disable(EnableCap.CullFace);
             Disable(EnableCap.Blend);
@@ -92,7 +92,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Dispose();
         }
 
-        private static readonly List<Vector3> _vertices =
+        private static readonly Vector3[] _vertices =
         [
             // top
             (0f, 1f, 0f),
@@ -112,13 +112,13 @@ namespace VoxelWorld.Graphics.Renderer
             (1f, 1f, 0f),
             (1f, 1f, 1f)
         ];
-        private static readonly List<float> _brightness =
+        private static readonly float[] _brightness =
         [
             1f, 1f, 1f, 1f,
             0.95f, 0.95f, 0.95f, 0.95f,
             0.9f, 0.9f, 0.9f, 0.9f
         ];
-        private static readonly List<uint> _indices =
+        private static readonly byte[] _indices =
         [
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,

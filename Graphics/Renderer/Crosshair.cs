@@ -8,9 +8,9 @@ namespace VoxelWorld.Graphics.Renderer
     {
         private readonly ShaderProgram _shader;
         private readonly VAO _vao;
-        private readonly VBO _vbo;
-        private readonly VBO _textureVBO;
-        private readonly EBO _ebo;
+        private readonly BufferObject<Vector2> _vbo;
+        private readonly BufferObject<Vector2> _textureVBO;
+        private readonly BufferObject<byte> _ebo;
         private readonly Texture _texture;
 
         public Crosshair()
@@ -19,13 +19,13 @@ namespace VoxelWorld.Graphics.Renderer
 
             _vao = new VAO();
 
-            _vbo = new VBO(_vertices);
+            _vbo = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _vertices, false);
             VAO.LinkToVAO(0, 2);
 
-            _textureVBO = new VBO(_textureVertices);
+            _textureVBO = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _textureVertices, false);
             VAO.LinkToVAO(1, 2);
 
-            _ebo = new EBO(_indices);
+            _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _indices, false);
 
             _texture = new Texture("utilities/crosshair.png");
         }
@@ -41,7 +41,7 @@ namespace VoxelWorld.Graphics.Renderer
 
             _texture.Bind();
             _vao.Bind();
-            DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
+            DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedByte, 0);
 
             Disable(EnableCap.Blend);
         }
@@ -56,8 +56,8 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.Dispose();
         }
 
-        private static readonly List<Vector2> _vertices = [ (-1f, -1f), ( 1f, -1f), ( 1f,  1f), (-1f,  1f) ];
-        private static readonly List<Vector2> _textureVertices = [ (0f, 1f), (1f, 1f), (1f, 0f), (0f, 0f) ];
-        private static readonly List<uint> _indices = [0, 1, 2, 2, 3, 0];
+        private static readonly Vector2[] _vertices = [ (-1f, -1f), ( 1f, -1f), ( 1f,  1f), (-1f,  1f) ];
+        private static readonly Vector2[] _textureVertices = [ (0f, 1f), (1f, 1f), (1f, 0f), (0f, 0f) ];
+        private static readonly byte[] _indices = [0, 1, 2, 2, 3, 0];
     }
 }
