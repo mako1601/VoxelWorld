@@ -92,6 +92,7 @@ namespace VoxelWorld.Window
             // OpenGL settings
             Enable(EnableCap.DepthTest);
             DepthFunc(DepthFunction.Less);
+            Enable(EnableCap.LineSmooth);
 
             // init
             _textureManager = TextureManager.Instance;
@@ -106,7 +107,7 @@ namespace VoxelWorld.Window
                 Player = new Player(null);
             }
             ChunkManager.Instance.Load(Player.CurrentChunk);
-            Interface = new UI(Player.SelectedBlock);
+            Interface = new UI();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
@@ -229,14 +230,18 @@ namespace VoxelWorld.Window
                 if (IsPolygonMode)
                 {
                     PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Fill);
+                    Enable(EnableCap.LineSmooth);
                     IsPolygonMode = false;
                 }
                 else
                 {
                     PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Line);
+                    Disable(EnableCap.LineSmooth);
                     IsPolygonMode = true;
                 }
             }
+
+            if (e.Key is Keys.B && KeyboardState.IsKeyDown(Keys.F3)) Interface.ChunkBoundaries = !Interface.ChunkBoundaries;
 
             if (e.Key is Keys.E) IsWhiteWorld = !IsWhiteWorld;
             if (e.Key is Keys.F3) Interface.DebugInfo = !Interface.DebugInfo;

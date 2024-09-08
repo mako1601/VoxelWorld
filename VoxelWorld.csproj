@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Using Include="System.Diagnostics" />
+    <Using Include="System.IO.Compression" />
     <Using Include="System.Runtime.InteropServices" />
   </ItemGroup>
 

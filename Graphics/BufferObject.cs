@@ -12,7 +12,7 @@ namespace VoxelWorld.Graphics
             Type = type;
             ID = GL.GenBuffer();
             GL.BindBuffer(type, ID);
-            GL.BufferData(type, size * Marshal.SizeOf<T>(), IntPtr.Zero, isDynamic ? BufferUsage.StreamDraw : BufferUsage.StaticDraw);
+            GL.BufferData(type, size * Marshal.SizeOf<T>(), IntPtr.Zero, isDynamic ? BufferUsage.DynamicDraw : BufferUsage.StaticDraw);
         }
 
         public unsafe BufferObject(BufferTarget type, T[] data, bool isDynamic)
@@ -20,7 +20,7 @@ namespace VoxelWorld.Graphics
             Type = type;
             ID = GL.GenBuffer();
             GL.BindBuffer(type, ID);
-            GL.BufferData(type, data.Length * Marshal.SizeOf<T>(), data, isDynamic ? BufferUsage.StreamDraw : BufferUsage.StaticDraw);
+            GL.BufferData(type, data.Length * Marshal.SizeOf<T>(), data, isDynamic ? BufferUsage.DynamicDraw : BufferUsage.StaticDraw);
         }
 
         public void Bind() => GL.BindBuffer(Type, ID);

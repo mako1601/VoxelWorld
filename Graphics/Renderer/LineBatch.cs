@@ -1,6 +1,5 @@
 ﻿using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
-using static OpenTK.Graphics.OpenGL.GL;
 
 using VoxelWorld.World;
 using VoxelWorld.Entity;
@@ -8,126 +7,159 @@ using VoxelWorld.Managers;
 
 namespace VoxelWorld.Graphics.Renderer
 {
-    public class LineBatch
+    public class LineBatch : IDisposable
     {
         private readonly ShaderProgram _shader;
 
         private readonly VertexArrayObject _chunkVAO;
-        private readonly BufferObject<Vector3> _chunkVBO;
+        private readonly BufferObject<float> _chunkVBO;
+        private readonly BufferObject<int> _chunkEBO;
 
         private readonly VertexArrayObject _blockVAO;
-        private readonly BufferObject<Vector3> _blockVBO;
+        private readonly BufferObject<float> _blockVBO;
         private readonly BufferObject<byte> _blockEBO;
 
-        public LineBatch()
-        {
-            _shader = new ShaderProgram("line.glslv", "line.glslf");
+        private readonly List<float> _chunkVertices;
+        private readonly List<int> _chunkIndices;
 
-            _chunkVAO = new VertexArrayObject(Marshal.SizeOf<Vector3>());
+        public unsafe LineBatch()
+        {
+            _chunkVertices = FillVertices();
+            _chunkIndices = Enumerable.Range(0, _chunkVertices.Count / 2).ToList();
+
+            _shader = new ShaderProgram("line.glslv", "line.glslf");
+            _shader.Use();
+
+            _chunkVAO = new VertexArrayObject(6 * sizeof(float));
             _chunkVAO.Bind();
 
-            _chunkVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _chunkVertices, false);
-            _chunkVAO.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
+            _chunkVBO = new BufferObject<float>(BufferTarget.ArrayBuffer, _chunkVertices.ToArray(), false);
+            _chunkEBO = new BufferObject<int>(BufferTarget.ElementArrayBuffer, _chunkIndices.ToArray(), false);
 
-            _blockVAO = new VertexArrayObject(Marshal.SizeOf<Vector3>());
+            var location = _shader.GetAttribLocation("vPosition");
+            _chunkVAO.VertexAttribPointer(location, 3, VertexAttribPointerType.Float, false, 0);
+
+            location = _shader.GetAttribLocation("vColor");
+            _chunkVAO.VertexAttribPointer(location, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float));
+
+            _blockVAO = new VertexArrayObject(6 * sizeof(float));
             _blockVAO.Bind();
 
-            _blockVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _blockVertices, false);
-            _blockVAO.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
-
+            _blockVBO = new BufferObject<float>(BufferTarget.ArrayBuffer, _blockVertices, false);
             _blockEBO = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _blockIndices, false);
+
+            location = _shader.GetAttribLocation("vPosition");
+            _blockVAO.VertexAttribPointer(location, 3, VertexAttribPointerType.Float, false, 0);
+
+            location = _shader.GetAttribLocation("vColor");
+            _blockVAO.VertexAttribPointer(location, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float));
         }
 
-        public void DrawChunkBoundaries(Color3<Rgb> color, Player player)
+        public void DrawChunkBoundaries(Player player)
         {
-            Enable(EnableCap.CullFace);
-            CullFace(TriangleFace.Back);
-            Enable(EnableCap.Blend);
-            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
             var c = ChunkManager.GetChunkPosition((int)MathF.Floor(player.Position.X), (int)MathF.Floor(player.Position.Z));
 
             _shader.Use();
-            _shader.SetVector4("uColor", (color.X, color.Y, color.Z, 1f));
-            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(c.X * Chunk.Size.X, player.Position.Y, c.Y * Chunk.Size.Z));
+            _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(c.X * Chunk.Size.X, 0f, c.Y * Chunk.Size.Z));
             _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _chunkVAO.Bind();
-            DrawArrays(PrimitiveType.Lines, 0, _chunkVertices.Length);
-
-            Disable(EnableCap.CullFace);
-            Disable(EnableCap.Blend);
+            GL.DrawArrays(PrimitiveType.Lines, 0, _chunkVertices.Count);
         }
 
-        public void DrawBlockOutline(Player player)
+        public unsafe void DrawBlockOutline(Player player)
         {
             if (player.Camera.Ray.Block is null) return;
 
-            Enable(EnableCap.CullFace);
-            CullFace(TriangleFace.Back);
-            Enable(EnableCap.Blend);
-            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
             _shader.Use();
-            _shader.SetVector4("uColor", (0f, 0f, 0f, 0.5f));
             _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(player.Camera.Ray.Position));
             _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 
             _blockVAO.Bind();
-            DrawElements(PrimitiveType.Lines, _blockIndices.Length, DrawElementsType.UnsignedByte, 0);
-
-            Disable(EnableCap.CullFace);
-            Disable(EnableCap.Blend);
+            _blockEBO.Bind();
+            GL.DrawElements(PrimitiveType.Lines, _blockIndices.Length, DrawElementsType.UnsignedByte, IntPtr.Zero);
         }
 
-        public void Delete()
+        ~LineBatch() => Dispose(false);
+        public void Dispose() => Dispose(true);
+
+        protected virtual void Dispose(bool disposing)
         {
+            if (!disposing) return;
+
             _blockEBO.Dispose();
             _blockVBO.Dispose();
             _blockVAO.Dispose();
 
+            _chunkEBO.Dispose();
             _chunkVBO.Dispose();
             _chunkVAO.Dispose();
 
             _shader.Dispose();
         }
 
-        private static readonly Vector3[] _chunkVertices =
+        private static List<float> FillVertices()
+        {
+            List<float> list = [];
+
+            for (int x = -16; x <= 32; x += 16)
+            {
+                for (int z = -16; z <= 32; z += 16)
+                {
+                    list.AddRange([ x, 0f,   z, 255f, 0f, 0f ]);
+                    list.AddRange([ x, 256f, z, 255f, 0f, 0f ]);
+                }
+            }
+
+            for (int x = 2; x <= 14; x += 2)
+            {
+                list.AddRange([ x, 0f,   0f, 255f, 255f, 0f ]);
+                list.AddRange([ x, 256f, 0f, 255f, 255f, 0f ]);
+
+                list.AddRange([ x, 0f,   16f, 255f, 255f, 0f ]);
+                list.AddRange([ x, 256f, 16f, 255f, 255f, 0f ]);
+            }
+
+            for (int z = 2; z <= 14; z += 2)
+            {
+                list.AddRange([ 0f, 0f,   z, 255f, 255f, 0f ]);
+                list.AddRange([ 0f, 256f, z, 255f, 255f, 0f ]);
+
+                list.AddRange([ 16f, 0f,   z, 255f, 255f, 0f ]);
+                list.AddRange([ 16f, 256f, z, 255f, 255f, 0f ]);
+            }
+
+            for (int y = 0; y <= 256; y += 2)
+            {
+                list.AddRange([ 0f,  y, 0f, 255f, 255f, 0f ]);
+                list.AddRange([ 16f, y, 0f, 255f, 255f, 0f ]);
+
+                list.AddRange([ 0f,  y, 16f, 255f, 255f, 0f ]);
+                list.AddRange([ 16f, y, 16f, 255f, 255f, 0f ]);
+
+                list.AddRange([ 0f, y,  0f, 255f, 255f, 0f ]);
+                list.AddRange([ 0f, y, 16f, 255f, 255f, 0f ]);
+
+                list.AddRange([ 16f, y,  0f, 255f, 255f, 0f ]);
+                list.AddRange([ 16f, y, 16f, 255f, 255f, 0f ]);
+            }
+
+            return list;
+        }
+
+        private static readonly float[] _blockVertices =
         [
-            (0f, -1000f, 0f), (0f,  1000f, 0f), ( 4f, -1000f, 0f), ( 4f,  1000f, 0f),
-            (8f, -1000f, 0f), (8f,  1000f, 0f), (12f, -1000f, 0f), (12f,  1000f, 0f),
-
-            (16f, -1000f,  0f), (16f,  1000f,  0f), (0f, -1000f, 16f), (0f,  1000f, 16f),
-            ( 4f, -1000f, 16f), ( 4f,  1000f, 16f), (8f, -1000f, 16f), (8f,  1000f, 16f),
-
-            (12f, -1000f, 16f), (12f,  1000f, 16f), (16f, -1000f, 16f), (16f,  1000f, 16f),
-            ( 0f, -1000f,  4f), ( 0f,  1000f,  4f), ( 0f, -1000f,  8f), ( 0f,  1000f,  8f),
-
-            ( 0f, -1000f, 12f), ( 0f,  1000f, 12f), (16f, -1000f,  4f), (16f,  1000f,  4f),
-            (16f, -1000f,  8f), (16f,  1000f,  8f), (16f, -1000f, 12f), (16f,  1000f, 12f),
-
-            (-16f, -1000f,  0f), (-16f, 1000f,  0f), (-16f, -1000f, 16f), (-16f, 1000f, 16f),
-            (-16f, -1000f, 32f), (-16f, 1000f, 32f), (  0f, -1000f, 32f), (  0f, 1000f, 32f),
-
-            (16f, -1000f, 32f), (16f, 1000f, 32f), (32f, -1000f, 32f), (32f, 1000f, 32f),
-            (32f, -1000f, 16f), (32f, 1000f, 16f), (32f, -1000f,  0f), (32f, 1000f,  0f),
-
-            (32f, -1000f, -16f), (32f, 1000f, -16f), ( 16f, -1000f, -16f), ( 16f, 1000f, -16f),
-            ( 0f, -1000f, -16f), ( 0f, 1000f, -16f), (-16f, -1000f, -16f), (-16f, 1000f, -16f),
-        ];
-
-        private static readonly Vector3[] _blockVertices =
-        [
-            (-0.004f, -0.004f, -0.004f),
-            ( 1.004f, -0.004f, -0.004f),
-            ( 1.004f, -0.004f,  1.004f),
-            (-0.004f, -0.004f,  1.004f),
-            (-0.004f,  1.004f, -0.004f),
-            ( 1.004f,  1.004f, -0.004f),
-            ( 1.004f,  1.004f,  1.004f),
-            (-0.004f,  1.004f,  1.004f)
+        //      x        y        z     r   g   b
+            -0.005f, -0.005f, -0.005f, 0f, 0f, 0f,
+             1.005f, -0.005f, -0.005f, 0f, 0f, 0f,
+             1.005f, -0.005f,  1.005f, 0f, 0f, 0f,
+            -0.005f, -0.005f,  1.005f, 0f, 0f, 0f,
+            -0.005f,  1.005f, -0.005f, 0f, 0f, 0f,
+             1.005f,  1.005f, -0.005f, 0f, 0f, 0f,
+             1.005f,  1.005f,  1.005f, 0f, 0f, 0f,
+            -0.005f,  1.005f,  1.005f, 0f, 0f, 0f
         ];
         private static readonly byte[] _blockIndices =
         [

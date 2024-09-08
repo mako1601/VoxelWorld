@@ -23,7 +23,7 @@ namespace VoxelWorld.Window
         private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
 
-        public UI(int blockID)
+        public UI()
         {
             FontSize = 32;
             DebugInfo = true;
@@ -31,17 +31,18 @@ namespace VoxelWorld.Window
             _debugText = new Text(FontSize);
             _crosshair = new Crosshair();
             _lineBatch = new LineBatch();
-            _selectedBlock = new SelectedBlock(blockID);
+            _selectedBlock = new SelectedBlock();
         }
 
         public uint FontSize { get; set; }
         public bool DebugInfo { get; set; }
         public bool Crosshair { get; set; }
+        public bool ChunkBoundaries { get; set; }
 
         public void Draw(Color3<Rgb> color, Info info)
         {
             _lineBatch.DrawBlockOutline(info.Player);
-            if (DebugInfo is true) _lineBatch.DrawChunkBoundaries(Color3.Yellow, info.Player);
+            if (ChunkBoundaries is true) _lineBatch.DrawChunkBoundaries(info.Player);
 
             Clear(ClearBufferMask.DepthBufferBit);
 
@@ -55,8 +56,8 @@ namespace VoxelWorld.Window
         {
             _debugText.Delete();
             _crosshair.Dispose();
-            _lineBatch.Delete();
-            _selectedBlock.Delete();
+            _lineBatch.Dispose();
+            _selectedBlock.Dispose();
         }
 
         private void DrawLine(string text, float x, float y, float scale/*, Vector2 dir*/)

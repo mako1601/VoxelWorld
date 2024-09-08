@@ -13,14 +13,14 @@ namespace VoxelWorld.Graphics.Renderer
 
         public unsafe Crosshair()
         {
-            _vao = new VertexArrayObject(4 * sizeof(float));
-            _vao.Bind();
-
             _vbo = new BufferObject<float>(BufferTarget.ArrayBuffer, _vertices, false);
             _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _indices, false);
 
             _shader = new ShaderProgram("crosshair.glslv", "crosshair.glslf");
             _shader.Use();
+
+            _vao = new VertexArrayObject(4 * sizeof(float));
+            _vao.Bind();
 
             var location = _shader.GetAttribLocation("vPosition");
             _vao.VertexAttribPointer(location, 2, VertexAttribPointerType.Float, false, 0);
@@ -39,12 +39,13 @@ namespace VoxelWorld.Graphics.Renderer
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            _vao.Bind();
-            _texture.Use(TextureUnit.Texture0);
-
             _shader.Use();
             _shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(-windowSize.X / (float)windowSize.Y, windowSize.X / (float)windowSize.Y, -1f, 1f, -1f, 1f));
             _shader.SetMatrix4("uScale", Matrix4.CreateScale(32f / windowSize.Y));
+
+            _vao.Bind();
+            _ebo.Bind();
+            _texture.Use(TextureUnit.Texture0);
 
             GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedByte, IntPtr.Zero);
 
