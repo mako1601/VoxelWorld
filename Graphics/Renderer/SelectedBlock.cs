@@ -12,7 +12,7 @@ namespace VoxelWorld.Graphics.Renderer
     {
         private int _id;
         private readonly ShaderProgram _shader;
-        private readonly VAO _vao;
+        private readonly VertexArrayObject _vao;
         private readonly BufferObject<Vector3> _vboVertices;
         private readonly BufferObject<Vector2> _vboUV;
         private readonly BufferObject<float> _vboBrightness;
@@ -20,27 +20,28 @@ namespace VoxelWorld.Graphics.Renderer
 
         private readonly List<Vector2> _uvs;
 
-        public SelectedBlock(int id)
+        public unsafe SelectedBlock(int id)
         {
             _id = id;
-
-            _shader = new ShaderProgram("selected_block.glslv", "selected_block.glslf");
-
-            _vao = new VAO();
-
-            _vboVertices = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices, false);
-            VAO.LinkToVAO(0, 3);
 
             _uvs = [];
             _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Top));
             _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Front));
             _uvs.AddRange(Block.GetBlockUV(_id, Block.Face.Right));
 
+            _shader = new ShaderProgram("selected_block.glslv", "selected_block.glslf");
+
+            _vao = new VertexArrayObject(0);
+            _vao.Bind();
+
+            _vboVertices = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices, false);
+            _vao.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
+
             _vboUV = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), false);
-            VAO.LinkToVAO(1, 2);
+            _vao.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0);
 
             _vboBrightness = new BufferObject<float>(BufferTarget.ArrayBuffer, _brightness, false);
-            VAO.LinkToVAO(2, 1);
+            _vao.VertexAttribPointer(2, 1, VertexAttribPointerType.Float, false, 0);
 
             _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _indices, false);
         }
@@ -66,7 +67,7 @@ namespace VoxelWorld.Graphics.Renderer
                 _vboUV.Unbind();
             }
 
-            _shader.Bind();
+            _shader.Use();
             _shader.SetMatrix4("uProjection", Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90f), (float)info.Player.Camera.Width / info.Player.Camera.Height, 1f, 3f));
             _shader.SetMatrix4("uView", info.Player.Camera.GetViewMatrix(info.Player.Position));
             _shader.SetMatrix4("uModel1", Matrix4.CreateTranslation(info.Player.Position + info.Player.Camera.Front));
@@ -74,7 +75,7 @@ namespace VoxelWorld.Graphics.Renderer
             _shader.SetMatrix4("uModel3", Matrix4.CreateTranslation(2f, -2.2f, -1.8f));
             _shader.SetMatrix4("uModel4", Matrix4.CreateRotationY(MathHelper.DegreesToRadians(-55f)));
 
-            ChunkManager.Instance.TextureAtlas.Bind();
+            ChunkManager.Instance.TextureAtlas.Use(TextureUnit.Texture0);
             _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedByte, 0);
 

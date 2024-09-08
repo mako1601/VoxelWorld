@@ -7,7 +7,6 @@ using static OpenTK.Graphics.OpenGL.GL;
 using VoxelWorld.World;
 using VoxelWorld.Entity;
 using VoxelWorld.Graphics;
-using VoxelWorld.Graphics.Renderer;
 
 namespace VoxelWorld.Managers
 {
@@ -47,7 +46,7 @@ namespace VoxelWorld.Managers
             TextureAtlas = new Texture(TextureManager.Instance.Atlas, false);
             Block.Blocks = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Block>>(File.ReadAllText("resources/data/blocks.json")) ?? throw new Exception("[CRITICAL] Blocks is null!");
 
-            Chunks    = [];
+            Chunks = [];
 
             SolverR = new LightSolver(0);
             SolverG = new LightSolver(1);
@@ -75,7 +74,7 @@ namespace VoxelWorld.Managers
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            Shader.Bind();
+            Shader.Use();
             Shader.SetBool("uIsWhiteWorld", isWhiteWorld);
             Shader.SetVector3("uViewPos", player.Position);
             Shader.SetVector3("uFogColor", backgroundColor);

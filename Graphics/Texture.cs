@@ -1,47 +1,35 @@
 ﻿using OpenTK.Graphics.OpenGL;
-using static OpenTK.Graphics.OpenGL.GL;
-using static OpenTK.Graphics.OpenGL.TextureTarget;
 
 using StbImageSharp;
 
 namespace VoxelWorld.Graphics
 {
-    public class Texture : IGraphicsObject, IDisposable
+    public class Texture : IDisposable
     {
-        private bool _disposed = false;
         public int ID { get; private set; }
 
         public Texture(string filename, bool mipmap = true, int mipmapLevels = 4)
         {
-            ID = GenTexture();
-            BindTexture(Texture2d, ID);
-
-            TexParameterf(Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            TexParameterf(Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
-            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
-            if (mipmap)
-            {
-                TexParameterf(Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
-            }
+            ID = GL.GenTexture();
+            
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2d, ID);
 
             StbImage.stbi_set_flip_vertically_on_load(1);
-            
+
             ImageResult texture;
             try
             {
-                texture = ImageResult.FromStream(File.OpenRead($"resources/textures/{filename}"),
-                    ColorComponents.RedGreenBlueAlpha);
+                texture = ImageResult.FromStream(File.OpenRead($"resources/textures/{filename}"), ColorComponents.RedGreenBlueAlpha);
             }
             catch (FileNotFoundException ex)
             {
                 Console.WriteLine($"[WARNING] Failed to load texture file '{ex.FileName}'");
-                texture = ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/missing_texture.png"),
-                    ColorComponents.RedGreenBlueAlpha);
+                texture = ImageResult.FromStream(File.OpenRead($"resources/textures/utilities/missing_texture.png"), ColorComponents.RedGreenBlueAlpha);
             }
 
-            TexImage2D(
-                Texture2d,
+            GL.TexImage2D(
+                TextureTarget.Texture2d,
                 0,
                 InternalFormat.Rgba,
                 texture.Width,
@@ -52,28 +40,27 @@ namespace VoxelWorld.Graphics
                 texture.Data
             );
 
-            GenerateTextureMipmap(ID);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+
+            if (mipmap)
+            {
+                GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
+                GL.GenerateTextureMipmap(ID);
+            }
         }
 
         public Texture(ImageResult texture, bool mipmap = true, int mipmapLevels = 4)
         {
-            ID = GenTexture();
-            BindTexture(Texture2d, ID);
+            ID = GL.GenTexture();
 
-            TexParameterf(Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            TexParameterf(Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-            TexParameterf(Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
-            TexParameterf(Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+            GL.ActiveTexture(TextureUnit.Texture0);
+            GL.BindTexture(TextureTarget.Texture2d, ID);
 
-            if (mipmap)
-            {
-                TexParameterf(Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
-            }
-
-            StbImage.stbi_set_flip_vertically_on_load(1);
-
-            TexImage2D(
-                Texture2d,
+            GL.TexImage2D(
+                TextureTarget.Texture2d,
                 0,
                 InternalFormat.Rgba,
                 texture.Width,
@@ -84,39 +71,23 @@ namespace VoxelWorld.Graphics
                 texture.Data
             );
 
-            GenerateTextureMipmap(ID);
-        }
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, mipmap ? (int)TextureMinFilter.NearestMipmapNearest : (int)TextureMinFilter.Nearest);
+            GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
 
-        public void Bind() => BindTexture(Texture2d, ID);
-        public void Unbind() => BindTexture(Texture2d, 0);
-        private void Delete()
-        {
-            if (ID != 0)
+            if (mipmap)
             {
-                DeleteTexture(ID);
-                ID = 0;
+                GL.TexParameterf(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, mipmapLevels);
+                GL.GenerateTextureMipmap(ID);
             }
         }
 
-        public void Dispose()
+        public void Use(TextureUnit unit)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            GL.ActiveTexture(unit);
+            GL.BindTexture(TextureTarget.Texture2d, ID);
         }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed) return;
-
-            if (disposing)
-            {
-            }
-
-            Delete();
-
-            _disposed = true;
-        }
-
-        ~Texture() => Dispose(false);
+        public void Dispose() => GL.DeleteTexture(ID);
     }
 }

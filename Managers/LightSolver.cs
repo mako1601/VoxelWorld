@@ -1,8 +1,6 @@
 using OpenTK.Mathematics;
 
-using VoxelWorld.Managers;
-
-namespace VoxelWorld.Graphics.Renderer
+namespace VoxelWorld.Managers
 {
     public class LightSolver
     {

@@ -45,7 +45,7 @@ namespace VoxelWorld.World
         private readonly List<uint> _indices;
         private uint _indexCount;
 
-        private VAO? _vao;
+        private VertexArrayObject? _vao;
         private BufferObject<Vector3>? _vertexvbo;
         private BufferObject<Vector2>? _uvvbo;
         private BufferObject<Vector4>? _lightvbo;
@@ -137,16 +137,17 @@ namespace VoxelWorld.World
                 }
             }
 
-            _vao = new VAO();
+            _vao = new VertexArrayObject(0);
+            _vao.Bind();
 
             _vertexvbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices.ToArray(), false);
-            VAO.LinkToVAO(0, 3);
+            _vao.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
 
             _uvvbo = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), false);
-            VAO.LinkToVAO(1, 2);
+            _vao.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0);
 
             _lightvbo = new BufferObject<Vector4>(BufferTarget.ArrayBuffer, _lights.ToArray(), false);
-            VAO.LinkToVAO(2, 4);
+            _vao.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, 0);
 
             _ebo = new BufferObject<uint>(BufferTarget.ElementArrayBuffer, _indices.ToArray(), false);
         }
@@ -163,7 +164,7 @@ namespace VoxelWorld.World
         /// </summary>
         public void Draw()
         {
-            ChunkManager.Instance.TextureAtlas.Bind();
+            ChunkManager.Instance.TextureAtlas.Use(TextureUnit.Texture0);
             _vao?.Bind();
             GL.DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
         }

@@ -4,7 +4,6 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using VoxelWorld.World;
 using VoxelWorld.Managers;
-using SharpFont;
 
 namespace VoxelWorld.Entity
 {

@@ -17,7 +17,7 @@ namespace VoxelWorld.Graphics.Renderer
         }
 
         public ShaderProgram Shader { get; private set; }
-        public VAO VAO { get; private set; }
+        public VertexArrayObject VAO { get; private set; }
         public BufferObject<float> VBO { get; private set; }
         public Dictionary<uint, Character> Characters { get; private set; } = [];
 
@@ -67,11 +67,12 @@ namespace VoxelWorld.Graphics.Renderer
             BindTexture(TextureTarget.Texture2d, 0);
             PixelStoref(PixelStoreParameter.UnpackAlignment, 4);
 
-            VBO = new BufferObject<float>(BufferTarget.ArrayBuffer, _vquad, false);
+            VBO = new BufferObject<float>(BufferTarget.ArrayBuffer, _vquad, true);
 
-            VAO = new VAO();
-            VAO.LinkToVAO(0, 2, 4 * 4);
-            VAO.LinkToVAO(1, 2, 4 * 4, 2 * 4);
+            VAO = new VertexArrayObject(2 * Marshal.SizeOf<Vector2>());
+            VAO.Bind();
+            VAO.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 0);
+            VAO.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 2 * sizeof(float));
 
             VBO.Unbind();
             VAO.Unbind();

@@ -14,7 +14,7 @@ namespace VoxelWorld.Graphics.Renderer
     public class Skybox
     {
         private readonly ShaderProgram _shader;
-        private readonly VAO _vao;
+        private readonly VertexArrayObject _vao;
         private readonly BufferObject<Vector3> _vbo;
         private readonly BufferObject<byte> _ebo;
         private readonly int _texture;
@@ -23,10 +23,11 @@ namespace VoxelWorld.Graphics.Renderer
         {
             _shader = new ShaderProgram("skybox.glslv", "skybox.glslf");
 
-            _vao = new VAO();
+            _vao = new VertexArrayObject(0);
+            _vao.Bind();
 
             _vbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _skyboxVertices, false);
-            VAO.LinkToVAO(0, 3);
+            _vao.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
 
             _ebo = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _skyboxIndices, false);
 
@@ -69,7 +70,7 @@ namespace VoxelWorld.Graphics.Renderer
                 );
             }
 
-            _shader.Bind();
+            _shader.Use();
             _shader.SetInt("uSkybox", 0);
         }
 
@@ -77,7 +78,7 @@ namespace VoxelWorld.Graphics.Renderer
         {
             DepthFunc(DepthFunction.Lequal);
 
-            _shader.Bind();
+            _shader.Use();
             _shader.SetMatrix4("uView", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
 

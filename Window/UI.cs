@@ -54,7 +54,7 @@ namespace VoxelWorld.Window
         public void Delete()
         {
             _debugText.Delete();
-            _crosshair.Delete();
+            _crosshair.Dispose();
             _lineBatch.Delete();
             _selectedBlock.Delete();
         }
@@ -106,7 +106,7 @@ namespace VoxelWorld.Window
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            _debugText.Shader.Bind();
+            _debugText.Shader.Use();
             _debugText.Shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
             _debugText.Shader.SetVector3("uColor", (Vector3)color);
 

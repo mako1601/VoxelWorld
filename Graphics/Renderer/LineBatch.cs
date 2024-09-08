@@ -12,10 +12,10 @@ namespace VoxelWorld.Graphics.Renderer
     {
         private readonly ShaderProgram _shader;
 
-        private readonly VAO _chunkVAO;
+        private readonly VertexArrayObject _chunkVAO;
         private readonly BufferObject<Vector3> _chunkVBO;
 
-        private readonly VAO _blockVAO;
+        private readonly VertexArrayObject _blockVAO;
         private readonly BufferObject<Vector3> _blockVBO;
         private readonly BufferObject<byte> _blockEBO;
 
@@ -23,15 +23,17 @@ namespace VoxelWorld.Graphics.Renderer
         {
             _shader = new ShaderProgram("line.glslv", "line.glslf");
 
-            _chunkVAO = new VAO();
+            _chunkVAO = new VertexArrayObject(Marshal.SizeOf<Vector3>());
+            _chunkVAO.Bind();
 
             _chunkVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _chunkVertices, false);
-            VAO.LinkToVAO(0, 3);
+            _chunkVAO.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
 
-            _blockVAO = new VAO();
+            _blockVAO = new VertexArrayObject(Marshal.SizeOf<Vector3>());
+            _blockVAO.Bind();
 
             _blockVBO = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _blockVertices, false);
-            VAO.LinkToVAO(0, 3);
+            _blockVAO.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
 
             _blockEBO = new BufferObject<byte>(BufferTarget.ElementArrayBuffer, _blockIndices, false);
         }
@@ -45,7 +47,7 @@ namespace VoxelWorld.Graphics.Renderer
 
             var c = ChunkManager.GetChunkPosition((int)MathF.Floor(player.Position.X), (int)MathF.Floor(player.Position.Z));
 
-            _shader.Bind();
+            _shader.Use();
             _shader.SetVector4("uColor", (color.X, color.Y, color.Z, 1f));
             _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(c.X * Chunk.Size.X, player.Position.Y, c.Y * Chunk.Size.Z));
             _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
@@ -67,7 +69,7 @@ namespace VoxelWorld.Graphics.Renderer
             Enable(EnableCap.Blend);
             BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            _shader.Bind();
+            _shader.Use();
             _shader.SetVector4("uColor", (0f, 0f, 0f, 0.5f));
             _shader.SetMatrix4("uModel", Matrix4.CreateTranslation(player.Camera.Ray.Position));
             _shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
