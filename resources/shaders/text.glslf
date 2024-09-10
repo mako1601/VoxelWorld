@@ -1,13 +1,19 @@
-#version 460 core
+#ifdef GL_ES
+	#define LOWP lowp
+	precision mediump float;
+#else
+	#define LOWP
+#endif
 
-in vec2 aTexCoord;
 
-out vec4 fColor;
+// Uniforms
+uniform sampler2D TextureSampler;
 
-uniform vec3      uColor;
-uniform sampler2D uTexture0;
+// Varyings
+varying vec4 v_color;
+varying vec2 v_texCoords;
 
-void main() {
-    float text = texture(uTexture0, aTexCoord.xy).r;
-    fColor = vec4(uColor.rgb * text, text);
+void main()
+{
+	gl_FragColor = v_color * texture2D(TextureSampler, v_texCoords);
 }

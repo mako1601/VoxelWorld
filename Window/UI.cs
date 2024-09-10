@@ -2,9 +2,11 @@
 using OpenTK.Graphics.OpenGL;
 using static OpenTK.Graphics.OpenGL.GL;
 
+using FontStashSharp;
+
 using VoxelWorld.Entity;
-using VoxelWorld.Managers;
 using VoxelWorld.Graphics.Renderer;
+using VoxelWorld.Managers;
 
 namespace VoxelWorld.Window
 {
@@ -22,16 +24,27 @@ namespace VoxelWorld.Window
         private readonly Crosshair _crosshair;
         private readonly LineBatch _lineBatch;
         private readonly SelectedBlock _selectedBlock;
+        private readonly FontSystem _fontSystem;
 
         public UI()
         {
             FontSize = 32;
             DebugInfo = true;
             Crosshair = true;
-            _debugText = new Text(FontSize);
+            _debugText = new Text();
             _crosshair = new Crosshair();
             _lineBatch = new LineBatch();
             _selectedBlock = new SelectedBlock();
+
+            var settings = new FontSystemSettings
+            {
+                FontResolutionFactor = 2,
+                KernelWidth = 2,
+                KernelHeight = 2
+            };
+
+            _fontSystem = new FontSystem(settings);
+            _fontSystem.AddFont(File.ReadAllBytes("resources/fonts/BitmapMc.ttf"));
         }
 
         public uint FontSize { get; set; }
@@ -39,14 +52,39 @@ namespace VoxelWorld.Window
         public bool Crosshair { get; set; }
         public bool ChunkBoundaries { get; set; }
 
-        public void Draw(Color3<Rgb> color, Info info)
+        public void Draw(FSColor color, Info info)
         {
             _lineBatch.DrawBlockOutline(info.Player);
             if (ChunkBoundaries is true) _lineBatch.DrawChunkBoundaries(info.Player);
 
             Clear(ClearBufferMask.DepthBufferBit);
 
-            if (DebugInfo is true) DrawInfo(color, info);
+            if (DebugInfo is true)
+            {
+                var text = $"FPS: {info.FPS}\n" +
+                    $"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}\n" +
+                    $"Time spent in the world: {info.Time:0.000}\n" +
+                    $"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})\n" +
+                    $"Chunk Coords XZ: {ChunkManager.GetChunkPosition(info.Player.RoundedPosition.Xz)}\n" +
+                    $"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})\n" +
+                    $"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})\n" +
+                    $"FOV: {info.Player.Camera.FOV:0}\n";
+                text += info.Player.Camera.Ray.Block is null ? "Block: too far\n" : $"Block XYZ: {info.Player.Camera.Ray.Block} {info.Player.Camera.Ray.Position}\n";
+                text += $"Normal XYZ: {info.Player.Camera.Ray.Normal}\n" +
+                    $"Light RGBS: {ChunkManager.GetLight(info.Player.RoundedPosition):X4}\n\n" +
+                    $"Number of Chunks: {ChunkManager.Instance.Chunks.Count}\n" +
+                    $"AddQueue: {ChunkManager.Instance.AddQueue.Count}\n" +
+                    $"RemoveQueue: {ChunkManager.Instance.RemoveQueue.Count}\n" +
+                    $"CreateMesh: {ChunkManager.Instance.CreateMesh.Count}\n" +
+                    $"UpdateMesh: {ChunkManager.Instance.UpdateMesh.Count}";
+
+                var font = _fontSystem.GetFont(FontSize);
+
+                _debugText.Begin(info.WindowSize);
+                font.DrawText(_debugText, text, new System.Numerics.Vector2(5f, 5f), color, scale: new System.Numerics.Vector2(0.7f, 0.7f), effect: FontSystemEffect.Stroked, effectAmount: 4);
+                _debugText.End();
+            }
+
             if (Crosshair is true) _crosshair.Draw(info.WindowSize);
 
             _selectedBlock.Draw(info);
@@ -54,81 +92,10 @@ namespace VoxelWorld.Window
 
         public void Delete()
         {
-            _debugText.Delete();
+            _debugText.Dispose();
             _crosshair.Dispose();
             _lineBatch.Dispose();
             _selectedBlock.Dispose();
-        }
-
-        private void DrawLine(string text, float x, float y, float scale/*, Vector2 dir*/)
-        {
-            ActiveTexture(TextureUnit.Texture0);
-            BindVertexArray(_debugText.VAO.ID);
-
-            //float angle_rad = (float)Math.Atan2(dir.Y, dir.X);
-            //Matrix4 rotateM = Matrix4.CreateRotationZ(angle_rad);
-            Matrix4 transOriginM = Matrix4.CreateTranslation(x, y, 0f);
-
-            float char_x = 0f;
-            foreach (var c in text)
-            {
-                if (!_debugText.Characters.ContainsKey(c))
-                {
-                    continue;
-                }
-                Text.Character ch = _debugText.Characters[c];
-
-                float w = ch.Size.X * scale;
-                float h = ch.Size.Y * scale;
-                float xrel = char_x + ch.Bearing.X * scale;
-                float yrel = (ch.Size.Y - ch.Bearing.Y) * scale;
-
-                char_x += (ch.Advance >> 6) * scale;
-
-                Matrix4 scaleM = Matrix4.CreateScale(w, h, 1f);
-                Matrix4 transRelM = Matrix4.CreateTranslation(xrel, yrel, 0.0f);
-
-                UniformMatrix4f(0, 1, false, transOriginM);
-                //UniformMatrix4(1, false, ref rotateM);
-                UniformMatrix4f(2, 1, false, transRelM);
-                UniformMatrix4f(3, 1, false, scaleM);
-
-                BindTexture(TextureTarget.Texture2d, ch.TextureID);
-
-                DrawArrays(PrimitiveType.Triangles, 0, 6);
-            }
-
-            BindVertexArray(0);
-            BindTexture(TextureTarget.Texture2d, 0);
-        }
-
-        private void DrawInfo(Color3<Rgb> color, Info info)
-        {
-            Enable(EnableCap.Blend);
-            BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-            _debugText.Shader.Use();
-            _debugText.Shader.SetMatrix4("uProjection", Matrix4.CreateOrthographicOffCenter(0f, info.WindowSize.X, info.WindowSize.Y, 0f, -1f, 1f));
-            _debugText.Shader.SetVector3("uColor", (Vector3)color);
-
-            DrawLine($"FPS: {info.FPS}", 5f, 20f, 0.5f);
-            DrawLine($"Resolution: {info.WindowSize.X}x{info.WindowSize.Y}", 5f, 40f, 0.5f);
-            DrawLine($"Time spent in the world: {info.Time:0.000}", 5f, 60f, 0.5f);
-            DrawLine($"Position XYZ: ({info.Player.Position.X:0.000}, {info.Player.Position.Y:0.000}, {info.Player.Position.Z:0.000})", 5f, 80f, 0.5f);
-            DrawLine($"Chunk Coords XZ: {ChunkManager.GetChunkPosition(info.Player.RoundedPosition.Xz)}", 5f, 100f, 0.5f);
-            DrawLine($"Front XYZ: ({info.Player.Camera.Front.X:0.000}, {info.Player.Camera.Front.Y:0.000}, {info.Player.Camera.Front.Z:0.000})", 5f, 120f, 0.5f);
-            DrawLine($"Right XYZ: ({info.Player.Camera.Right.X:0.000}, {info.Player.Camera.Right.Y:0.000}, {info.Player.Camera.Right.Z:0.000})", 5f, 140f, 0.5f);
-            DrawLine($"FOV: {info.Player.Camera.FOV:0}", 5f, 160f, 0.5f);
-            DrawLine(info.Player.Camera.Ray.Block is null ? "Block: too far" : $"Block XYZ: {info.Player.Camera.Ray.Block} {info.Player.Camera.Ray.Position}", 5f, 180f, 0.5f);
-            DrawLine($"Normal XYZ: {info.Player.Camera.Ray.Normal}", 5f, 200f, 0.5f);
-            DrawLine($"Light RGBS: {ChunkManager.GetLight(info.Player.RoundedPosition):X4}", 5f, 220f, 0.5f);
-            DrawLine($"Number of Chunks: {ChunkManager.Instance.Chunks.Count}", 5f, 260f, 0.5f);
-            DrawLine($"AddQueue: {ChunkManager.Instance.AddQueue.Count}", 5f, 280f, 0.5f);
-            DrawLine($"RemoveQueue: {ChunkManager.Instance.RemoveQueue.Count}", 5f, 300f, 0.5f);
-            DrawLine($"CreateMesh: {ChunkManager.Instance.CreateMesh.Count}", 5f, 320f, 0.5f);
-            DrawLine($"UpdateMesh: {ChunkManager.Instance.UpdateMesh.Count}", 5f, 340f, 0.5f);
-
-            Disable(EnableCap.Blend);
         }
     }
 }

@@ -9,7 +9,7 @@ using static VoxelWorld.World.Block;
 
 namespace VoxelWorld.World
 {
-    public class Chunk
+    public class Chunk : IDisposable
     {
         public static Vector3i Size { get; } = new Vector3i(16, 64, 16);
         public Vector2i Position { get; }
@@ -140,23 +140,23 @@ namespace VoxelWorld.World
             _vao = new VertexArrayObject(0);
             _vao.Bind();
 
-            _vertexvbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices.ToArray(), false);
+            _vertexvbo = new BufferObject<Vector3>(BufferTarget.ArrayBuffer, _vertices.ToArray(), true);
             _vao.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0);
 
-            _uvvbo = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), false);
+            _uvvbo = new BufferObject<Vector2>(BufferTarget.ArrayBuffer, _uvs.ToArray(), true);
             _vao.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 0);
 
-            _lightvbo = new BufferObject<Vector4>(BufferTarget.ArrayBuffer, _lights.ToArray(), false);
+            _lightvbo = new BufferObject<Vector4>(BufferTarget.ArrayBuffer, _lights.ToArray(), true);
             _vao.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, 0);
 
-            _ebo = new BufferObject<uint>(BufferTarget.ElementArrayBuffer, _indices.ToArray(), false);
+            _ebo = new BufferObject<uint>(BufferTarget.ElementArrayBuffer, _indices.ToArray(), true);
         }
         /// <summary>
         /// Updates a mesh of the chunk.
         /// </summary>
         public void UpdateMesh()
         {
-            Delete();
+            Clear();
             CreateMesh();
         }
         /// <summary>
@@ -168,10 +168,8 @@ namespace VoxelWorld.World
             _vao?.Bind();
             GL.DrawElements(PrimitiveType.Triangles, _indices.Count, DrawElementsType.UnsignedInt, 0);
         }
-        /// <summary>
-        /// Deallocates all resources.
-        /// </summary>
-        public void Delete()
+
+        private void Clear()
         {
             _vertices.Clear();
             _uvs.Clear();
@@ -184,6 +182,21 @@ namespace VoxelWorld.World
             _uvvbo?.Dispose();
             _vertexvbo?.Dispose();
             _vao?.Dispose();
+        }
+
+        ~Chunk() => Dispose(false);
+        public void Dispose() => Dispose(true);
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+            {
+                _ebo?.Dispose();
+                _lightvbo?.Dispose();
+                _uvvbo?.Dispose();
+                _vertexvbo?.Dispose();
+                _vao?.Dispose();
+            }
         }
         /// <summary>
         /// Selects all faces of the block that the player can see.

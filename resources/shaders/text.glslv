@@ -1,17 +1,18 @@
-#version 460 core
+// Attributes
+attribute vec3 a_position;
+attribute vec4 a_color;
+attribute vec2 a_texCoords0;
 
-layout (location = 0) in vec2 vPosition;
-layout (location = 1) in vec2 vTexCoord;
+// Uniforms
+uniform mat4 MatrixTransform;
 
-out vec2 aTexCoord;
+// Varyings
+varying vec4 v_color;
+varying vec2 v_texCoords;
 
-layout (location = 0) uniform mat4 uTransOrigin;
-//layout (location = 1) uniform mat4 uRotate;
-layout (location = 2) uniform mat4 uTransRel;
-layout (location = 3) uniform mat4 uScale;
-uniform mat4 uProjection;
-
-void main() {
-    gl_Position = uProjection * uTransOrigin /*uRotate*/ * uTransRel * uScale * vec4(vPosition.xy, 0.0, 1.0);
-    aTexCoord = vTexCoord.xy;
+void main()
+{
+	v_color = a_color;
+	v_texCoords = a_texCoords0;
+	gl_Position = MatrixTransform * vec4(a_position, 1.0);
 }

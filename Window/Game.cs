@@ -91,8 +91,7 @@ namespace VoxelWorld.Window
 
             // OpenGL settings
             Enable(EnableCap.DepthTest);
-            DepthFunc(DepthFunction.Less);
-            Enable(EnableCap.LineSmooth);
+            DepthFunc(DepthFunction.Lequal);
 
             // init
             _textureManager = TextureManager.Instance;
@@ -133,7 +132,7 @@ namespace VoxelWorld.Window
             if (Timer > 0.2)
             {
                 FPS = FrameCount * 5;
-                System.Diagnostics.Process curPorcess = System.Diagnostics.Process.GetCurrentProcess();
+                Process curPorcess = Process.GetCurrentProcess();
                 Title = $"VoxelWorld FPS: {FPS}, {args.Time * 1000d:0.0000}ms, "
                     + $"RAM: {curPorcess.WorkingSet64 / (1024f * 1024f):0.000}Mb";
                 curPorcess.Dispose();
@@ -157,7 +156,7 @@ namespace VoxelWorld.Window
 
             //_skybox.Draw(Player);
             ChunkManager.Instance.Draw(Player, Time, BackgroundColor.ToRgb(), IsWhiteWorld);
-            Interface.Draw(Color3.Yellow, new UI.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
+            Interface.Draw(FontStashSharp.FSColor.Yellow, new UI.Info { Player = Player, FPS = FPS, WindowSize = ClientSize, Time = Time } );
 
             Context.SwapBuffers();
         }
@@ -230,18 +229,16 @@ namespace VoxelWorld.Window
                 if (IsPolygonMode)
                 {
                     PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Fill);
-                    Enable(EnableCap.LineSmooth);
                     IsPolygonMode = false;
                 }
                 else
                 {
                     PolygonMode(TriangleFace.FrontAndBack, OpenTK.Graphics.OpenGL.PolygonMode.Line);
-                    Disable(EnableCap.LineSmooth);
                     IsPolygonMode = true;
                 }
             }
 
-            if (e.Key is Keys.B && KeyboardState.IsKeyDown(Keys.F3)) Interface.ChunkBoundaries = !Interface.ChunkBoundaries;
+            if (e.Key is Keys.F) Interface.ChunkBoundaries = !Interface.ChunkBoundaries;
 
             if (e.Key is Keys.E) IsWhiteWorld = !IsWhiteWorld;
             if (e.Key is Keys.F3) Interface.DebugInfo = !Interface.DebugInfo;

@@ -78,7 +78,7 @@ namespace VoxelWorld.Managers
             Shader.SetVector3("uFogColor", backgroundColor);
             Shader.SetFloat("uFogFactor", 0.9f); // 0 - fog off
             Shader.SetFloat("uFogCurve", 5f);
-            Shader.SetFloat("uGamma", 1.6f);
+            Shader.SetFloat("uGamma", 0.8f);
             Shader.SetFloat("uTime", (float)time);
             Shader.SetMatrix4("uView", player.Camera.GetViewMatrix(player.Position));
             Shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
@@ -105,7 +105,7 @@ namespace VoxelWorld.Managers
 
             foreach (var (_, chunkInfo) in Chunks)
             {
-                chunkInfo.Chunk.Delete();
+                chunkInfo.Chunk?.Dispose();
             }
 
             Shader.Dispose();
@@ -141,9 +141,9 @@ namespace VoxelWorld.Managers
             foreach (var offset in chunkOffsets)
             {
                 var newC = c + offset;
-                if (Instance.Chunks.TryGetValue(newC, out var chunkInfo))
+                if (Instance.Chunks.ContainsKey(newC))
                 {
-                    chunkInfo.Chunk.UpdateMesh();
+                    Instance.UpdateMesh.Add(newC);
                 }
             }
         }
@@ -240,8 +240,10 @@ namespace VoxelWorld.Managers
                 var c = RemoveQueue.Dequeue();
                 if (Chunks.TryGetValue(c, out var chunkInfo) && chunkInfo.Chunk is not null && chunkInfo.Lightmap is not null)
                 {
+                    //Block[] blocks = chunkInfo.Chunk.Blocks;
+                    //ushort[] lightmap = chunkInfo.Lightmap.Map;
+                    chunkInfo.Chunk.Dispose();
                     WriteChunk(chunkInfo);
-                    chunkInfo.Chunk.Delete();
                     Chunks.Remove(c);
                 }
             }
@@ -347,9 +349,9 @@ namespace VoxelWorld.Managers
                 lb = ConvertWorldToLocal(wb, c);
             }
 
-            Instance.Chunks[c].Chunk[lb] = new Block(id);
+            Instance.Chunks[c].Chunk![lb] = new Block(id);
             UpdateLight(GetBlock(wb)!, wb);
-            Instance.Chunks[c].Chunk.UpdateMesh();
+            Instance.Chunks[c].Chunk!.UpdateMesh();
             UpdateNearestChunks(c);
         }
 
@@ -655,7 +657,7 @@ namespace VoxelWorld.Managers
         {
             if (!Directory.Exists("saves/world")) Directory.CreateDirectory("saves/world");
 
-            Vector2i regionPosition = (chunkInfo.Chunk.Position.X >> 5, chunkInfo.Chunk.Position.Y >> 5);
+            Vector2i regionPosition = (chunkInfo.Chunk!.Position.X >> 5, chunkInfo.Chunk.Position.Y >> 5);
             using var fs = new FileStream($"saves/world/region_{regionPosition.X}_{regionPosition.Y}.bin", FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
             int index = chunkInfo.Chunk.Position.X - (regionPosition.X << 5) + (chunkInfo.Chunk.Position.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
@@ -668,7 +670,31 @@ namespace VoxelWorld.Managers
             Array.Copy(compressedBlocks, 0, chunkData, 4, compressedBlocks.Length);
             fs.Write(chunkData, 0, chunkData.Length);
 
-            byte[] compressedLightmap = CompressGZip(CompressRLELightmap(chunkInfo.Lightmap.Map));
+            byte[] compressedLightmap = CompressGZip(CompressRLELightmap(chunkInfo.Lightmap!.Map));
+            byte[] lightmapData = new byte[compressedLightmap.Length + 4]; // 4 bytes for the size of the chunk data
+            BitConverter.GetBytes(compressedLightmap.Length).CopyTo(lightmapData, 0);
+            Array.Copy(compressedLightmap, 0, lightmapData, 4, compressedLightmap.Length);
+            fs.Write(lightmapData, 0, lightmapData.Length);
+        }
+
+        public static void WriteChunk(Vector2i position, Block[] blocks, ushort[] lightmap)
+        {
+            if (!Directory.Exists("saves/world")) Directory.CreateDirectory("saves/world");
+
+            Vector2i regionPosition = (position.X >> 5, position.Y >> 5);
+            using var fs = new FileStream($"saves/world/region_{regionPosition.X}_{regionPosition.Y}.bin", FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+            int index = position.X - (regionPosition.X << 5) + (position.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
+
+            fs.Seek(index * 4096, SeekOrigin.Begin); // 4096 - max size of the chunk data in bytes
+
+            byte[] compressedBlocks = CompressGZip(CompressRLEBlocks(blocks));
+            byte[] chunkData = new byte[compressedBlocks.Length + 4]; // 4 bytes for the size of the chunk data
+            BitConverter.GetBytes(compressedBlocks.Length).CopyTo(chunkData, 0);
+            Array.Copy(compressedBlocks, 0, chunkData, 4, compressedBlocks.Length);
+            fs.Write(chunkData, 0, chunkData.Length);
+
+            byte[] compressedLightmap = CompressGZip(CompressRLELightmap(lightmap));
             byte[] lightmapData = new byte[compressedLightmap.Length + 4]; // 4 bytes for the size of the chunk data
             BitConverter.GetBytes(compressedLightmap.Length).CopyTo(lightmapData, 0);
             Array.Copy(compressedLightmap, 0, lightmapData, 4, compressedLightmap.Length);
@@ -683,7 +709,7 @@ namespace VoxelWorld.Managers
 
             foreach (var (_, chunkInfo) in chunks)
             {
-                Vector2i regionPosition = (chunkInfo.Chunk.Position.X >> 5, chunkInfo.Chunk.Position.Y >> 5);
+                Vector2i regionPosition = (chunkInfo.Chunk!.Position.X >> 5, chunkInfo.Chunk.Position.Y >> 5);
 
                 if (!regions.ContainsKey(regionPosition))
                 {
@@ -699,7 +725,7 @@ namespace VoxelWorld.Managers
 
                 foreach (var chunkInfo in chunkInfoList)
                 {
-                    int index = chunkInfo.Chunk.Position.X - (regionPosition.X << 5) + (chunkInfo.Chunk.Position.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
+                    int index = chunkInfo.Chunk!.Position.X - (regionPosition.X << 5) + (chunkInfo.Chunk.Position.Y - (regionPosition.Y << 5)) * 32; // 32 - RegionSize
 
                     fs.Seek(index * 4096, SeekOrigin.Begin); // 4096 - max size of the chunk data in bytes
 
@@ -711,7 +737,7 @@ namespace VoxelWorld.Managers
 
                     fs.Write(chunkData, 0, chunkData.Length);
 
-                    byte[] compressedLightmap = CompressGZip(CompressRLELightmap(chunkInfo.Lightmap.Map));
+                    byte[] compressedLightmap = CompressGZip(CompressRLELightmap(chunkInfo.Lightmap!.Map));
 
                     byte[] lightmapData = new byte[compressedLightmap.Length + 4]; // 4 bytes for the size of the chunk data
                     BitConverter.GetBytes(compressedLightmap.Length).CopyTo(lightmapData, 0);

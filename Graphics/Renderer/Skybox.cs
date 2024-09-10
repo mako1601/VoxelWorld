@@ -76,8 +76,6 @@ namespace VoxelWorld.Graphics.Renderer
 
         public void Draw(Player player)
         {
-            DepthFunc(DepthFunction.Lequal);
-
             _shader.Use();
             _shader.SetMatrix4("uView", new Matrix4(new Matrix3(player.Camera.GetViewMatrix(player.Position))));
             _shader.SetMatrix4("uProjection", player.Camera.GetProjectionMatrix());
@@ -86,8 +84,6 @@ namespace VoxelWorld.Graphics.Renderer
             BindTexture(TextureCubeMap, _texture);
             _vao.Bind();
             DrawElements(PrimitiveType.Triangles, _skyboxIndices.Length, DrawElementsType.UnsignedByte, 0);
-
-            DepthFunc(DepthFunction.Less);
         }
 
         public void Delete()
